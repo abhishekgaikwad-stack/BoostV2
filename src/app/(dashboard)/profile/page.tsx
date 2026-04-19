@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { LoginSuccessPopup } from "@/components/sections/LoginSuccessPopup";
 import { ProfileCard } from "@/components/sections/ProfileCard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -29,7 +30,11 @@ function deriveDisplayName(
   return `User - ${id.slice(0, 11)}`;
 }
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -38,6 +43,8 @@ export default async function ProfilePage() {
   if (!user) {
     redirect("/");
   }
+
+  const { welcome } = await searchParams;
 
   const metadata = user.user_metadata ?? {};
   const avatarUrl =
@@ -63,6 +70,7 @@ export default async function ProfilePage() {
         potentialEarnings={20000}
         currency="€"
       />
+      {welcome === "1" ? <LoginSuccessPopup /> : null}
     </div>
   );
 }

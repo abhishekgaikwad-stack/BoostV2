@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") ?? "/profile";
+  const next = url.searchParams.get("next") ?? "/profile?welcome=1";
 
   const response = NextResponse.redirect(new URL(next, url.origin));
 
