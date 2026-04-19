@@ -6,7 +6,7 @@ export function TopArticlesSection() {
   return (
     <section className="flex flex-col gap-6 rounded-3xl bg-black p-8">
       <header className="flex items-center justify-between">
-        <h2 className="font-display text-[18px] font-bold leading-6 text-brand-text-primary-dark">
+        <h2 className="font-display text-[16px] font-medium leading-5 text-brand-text-primary-dark">
           Top articles this week
         </h2>
         <CarouselNav />

@@ -9,3 +9,7 @@ export function gameImage(slug: string, ext: "webp" | "png" | "jpg" = "webp") {
 export function assetUrl(key: string) {
   return `${BASE}/${key.replace(/^\//, "")}`;
 }
+
+export function paymentIcon(slug: string, ext: "svg" | "png" | "webp" = "svg") {
+  return `${BASE}/payment-icons/${slug}.${ext}`;
+}

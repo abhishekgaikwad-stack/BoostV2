@@ -68,7 +68,7 @@ export default async function ProfilePage({
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="font-display text-[28px] font-bold leading-8 text-brand-text-primary-light">
+      <h1 className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-light">
         Profile
       </h1>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">

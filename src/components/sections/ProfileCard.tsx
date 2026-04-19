@@ -104,7 +104,7 @@ function SellerWallet({
         <span className="font-display text-[16px] font-medium leading-5">
           Wallet Balance
         </span>
-        <span className="font-display text-[32px] font-bold leading-9">
+        <span className="font-display text-[32px] font-medium leading-9">
           {formatMoney(balance, currency)}
         </span>
       </div>
@@ -129,7 +129,7 @@ function BuyerPromo({
           Become a seller and earn upto
         </span>
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-[32px] font-bold leading-9">
+          <span className="font-display text-[32px] font-medium leading-9">
             {formatMoney(earnings, currency)}
           </span>
           <span className="font-display text-[16px] font-medium leading-5">

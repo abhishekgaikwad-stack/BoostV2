@@ -15,7 +15,7 @@ export function StatsSection() {
       <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:divide-x lg:divide-[#353535]">
         {stats.map((stat) => (
           <div key={stat.label} className="flex flex-col gap-1">
-            <span className="font-display text-[28px] font-bold leading-8 text-brand-text-primary-dark">
+            <span className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-dark">
               {stat.value}
             </span>
             <span className="font-display text-[12px] font-normal leading-4 text-brand-text-secondary-dark">

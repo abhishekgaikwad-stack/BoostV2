@@ -72,7 +72,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-[120px] flex-col items-center gap-6 bg-black py-6 lg:flex">
+      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-[120px] flex-col items-center gap-6 bg-black pb-6 pt-[calc(var(--spacing)*12)] lg:flex">
         <Link
           href="/"
           className="flex flex-col items-center gap-[calc(var(--spacing)*2)]"

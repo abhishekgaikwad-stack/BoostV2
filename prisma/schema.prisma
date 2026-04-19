@@ -61,6 +61,7 @@ model Account {
   level       Int?
   rank        String?
   price       Int
+  retailPrice Int?
   images      String[]
   status      AccountStatus @default(AVAILABLE)
   sellerId    String        @db.Uuid

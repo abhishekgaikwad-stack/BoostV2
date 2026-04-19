@@ -30,7 +30,7 @@ export function FlashSaleSection() {
               key={unit.label}
               className="flex w-20 flex-col items-center gap-1 rounded-xl bg-brand-bg-elevated py-3"
             >
-              <span className="font-display text-[28px] font-bold leading-7 text-brand-text-primary-dark">
+              <span className="font-display text-[28px] font-medium leading-7 text-brand-text-primary-dark">
                 {unit.value}
               </span>
               <span className="font-mono text-[10px] tracking-[0.1em] text-brand-text-secondary-dark">

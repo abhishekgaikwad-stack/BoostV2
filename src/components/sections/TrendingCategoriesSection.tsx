@@ -3,7 +3,7 @@ import { categories } from "@/lib/mock";
 export function TrendingCategoriesSection() {
   return (
     <section className="rounded-3xl bg-brand-bg-pill p-8">
-      <h2 className="mb-6 font-display text-[18px] font-bold leading-6 text-brand-text-primary-light">
+      <h2 className="mb-6 font-display text-[16px] font-medium leading-5 text-brand-text-primary-light">
         Trending game categories
       </h2>
       <div className="flex flex-wrap gap-3">

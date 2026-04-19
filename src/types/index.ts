@@ -1,5 +1,6 @@
 export type Account = {
   id: string;
+  gameSlug: string;
   game: string;
   gameThumb?: string;
   gameSubtitle: string;
@@ -12,6 +13,32 @@ export type Account = {
   discount?: number;
   sellerName?: string;
   rating?: number;
+};
+
+export type Seller = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  rating: number;
+  reviewCount: number;
+};
+
+export type OfferReview = {
+  id: string;
+  rating: number;
+  body: string;
+  date: string;
+  user: string;
+  userSubtitle: string;
+};
+
+export type Offer = Account & {
+  description: string;
+  images: string[];
+  seller: Seller;
+  reviews: OfferReview[];
+  offerEndsLabel?: string;
 };
 
 export type Game = {

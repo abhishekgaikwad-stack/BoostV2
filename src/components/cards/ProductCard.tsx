@@ -1,4 +1,7 @@
+"use client";
+
 import { Bookmark, Heart, Star, Zap } from "lucide-react";
+import Link from "next/link";
 import type { Account } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +17,10 @@ export function ProductCard({
   const isDark = tone === "dark";
 
   return (
-    <article
+    <Link
+      href={`/game/${account.gameSlug}/${account.id}`}
       className={cn(
-        "flex w-full flex-col gap-4 rounded-3xl border p-4",
+        "flex w-full flex-col gap-4 rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:shadow-lg",
         isDark
           ? "border-brand-border-subtle bg-brand-bg-surface"
           : "border-brand-border-light bg-brand-bg-surface-light",
@@ -50,6 +54,10 @@ export function ProductCard({
         <button
           type="button"
           aria-label="Save to wishlist"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
           className={cn(
             "grid h-10 w-10 place-items-center rounded-lg border transition",
             isDark
@@ -147,7 +155,7 @@ export function ProductCard({
           </span>
         ) : null}
       </div>
-    </article>
+    </Link>
   );
 }
 

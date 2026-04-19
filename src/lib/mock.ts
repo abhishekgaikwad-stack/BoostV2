@@ -4,12 +4,16 @@ import type {
   Category,
   Feature,
   Game,
+  Offer,
+  OfferReview,
   Review,
+  Seller,
   Stat,
 } from "@/types";
 
 const sampleAccount = (id: string): Account => ({
   id,
+  gameSlug: "valorant",
   game: "Valorant",
   gameSubtitle: "Game Account",
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
@@ -114,6 +118,7 @@ export const categories: Category[] = [
 
 export const flashSaleAccount: Account = {
   id: "flash-1",
+  gameSlug: "valorant",
   game: "Valorant",
   gameSubtitle: "Game Account",
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
@@ -126,3 +131,58 @@ export const flashSaleAccount: Account = {
   sellerName: "seller_name",
   rating: 4.87,
 };
+
+const sampleSeller: Seller = {
+  id: "seller-empire",
+  name: "Empire Gaming",
+  isOnline: true,
+  rating: 4.5,
+  reviewCount: 4049,
+};
+
+const sampleOfferReview = (id: string, suffix: string): OfferReview => ({
+  id,
+  rating: 5,
+  body: "really good communication and got what i wanted! will 100% buy again.",
+  date: "16 April 2026",
+  user: `User-${suffix}`,
+  userSubtitle: "Valorant Account",
+});
+
+export const sampleOffer: Offer = {
+  ...sampleAccount("offer-1"),
+  description: `Account information:
+• League and Class are not selected on the account (Level is the very first)
+• Hours are wound up (without playing in matches)
+• Native mail
+• No Steam Guard
+• Completely empty account
+
+List of games on the account:
+Counter-Strike 2 / Dota 2 / Team Fortress 2 / Albion Online / Apex Legends™ / Crossout / EVE Online / THE FINALS / KUBOOM / Paladins® / Path of Exile / The First Descendant / PUBG: BATTLEGROUNDS / Russian Fishing 4 / STALCRAFT: X / Marvel Rivals / World of Tanks / War Thunder / Warframe / Allods Online / Caliber / Destiny 2 / Pixel Gun 3D: PC Edition / Farlight 84 / Lost Light / NARAKA: BLADEPOINT / World of Warships / The Sims™ 4 / Delta Force / Delta Force / Karos / World of Tanks Blitz / Call of Duty®: Warzone™
+
+How to log in to your account?
+• After ordering, you will receive the following account data: Login: Password: Email: Email password`,
+  images: [],
+  seller: sampleSeller,
+  reviews: [
+    sampleOfferReview("rev-1", "1234"),
+    sampleOfferReview("rev-2", "5678"),
+    sampleOfferReview("rev-3", "9101"),
+  ],
+  offerEndsLabel: "OFFER ENDS IN 42HRS 32MIN",
+};
+
+export function findOffer(gameSlug: string, offerId: string): Offer | null {
+  // Everything currently routes to the same sample offer, tagged with the
+  // requested slug/id so the UI shows the right values. Swap for a Prisma
+  // query (prisma.account.findUnique) once migrations are run.
+  if (gameSlug !== "valorant") return null;
+  return { ...sampleOffer, id: offerId, gameSlug };
+}
+
+export function similarOffers(gameSlug: string, excludeId: string): Account[] {
+  return newAccounts
+    .filter((account) => account.gameSlug === gameSlug && account.id !== excludeId)
+    .slice(0, 5);
+}

@@ -100,7 +100,7 @@ export function LoginPopup({
         </button>
 
         <div className="flex flex-col gap-2">
-          <h2 className="font-display text-[24px] font-bold leading-7">
+          <h2 className="font-display text-[24px] font-medium leading-7">
             {mode === "methods" ? "Sign in to Boost" : "Sign in with email"}
           </h2>
           <p className="font-display text-[13px] font-medium leading-5 text-brand-text-secondary-dark">
