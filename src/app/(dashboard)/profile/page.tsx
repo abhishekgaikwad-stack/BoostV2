@@ -48,8 +48,16 @@ export default async function ProfilePage({
   const { welcome } = await searchParams;
 
   const metadata = user.user_metadata ?? {};
-  const avatarUrl =
+  // Prefer the avatar the user uploaded (under a namespaced key that
+  // OAuth sign-ins don't overwrite), then fall back to the OAuth-supplied
+  // avatar_url, then null.
+  const customAvatar =
+    typeof metadata.boost_avatar_url === "string"
+      ? metadata.boost_avatar_url
+      : null;
+  const oauthAvatar =
     typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
+  const avatarUrl = customAvatar ?? oauthAvatar;
   const provider = user.app_metadata?.provider;
   const canChangePassword = provider === "email";
 

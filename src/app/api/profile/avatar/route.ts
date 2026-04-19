@@ -23,9 +23,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Missing avatarUrl" }, { status: 400 });
   }
 
-  // Primary: mirror into Supabase user metadata so the UI picks it up
-  // immediately and future clients see it without hitting Prisma.
-  await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+  // Primary: mirror into Supabase user metadata under a namespaced key.
+  // We deliberately don't write to `avatar_url` because OAuth providers
+  // overwrite that field on every sign-in; `boost_avatar_url` is ours
+  // and survives across sessions.
+  await supabase.auth.updateUser({
+    data: { boost_avatar_url: avatarUrl },
+  });
 
   // Secondary: persist on our Prisma User row. Swallow errors so the UI
   // still updates if migrations haven't been run yet.
