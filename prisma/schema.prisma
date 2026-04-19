@@ -32,6 +32,7 @@ model User {
   id        String   @id @db.Uuid
   email     String   @unique
   name      String?
+  avatarUrl String?
   role      Role     @default(USER)
   isSeller  Boolean  @default(false)
   createdAt DateTime @default(now())

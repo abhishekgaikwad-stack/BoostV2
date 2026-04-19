@@ -1,3 +1,4 @@
+import { ProfilePictureRow } from "@/components/sections/ProfilePictureRow";
 import { cn } from "@/lib/utils";
 
 export type SettingsPanelProps = {
@@ -64,25 +65,6 @@ function EmailRow({ email }: { email: string }) {
       >
         EDIT
       </button>
-    </div>
-  );
-}
-
-function ProfilePictureRow() {
-  return (
-    <div className="flex items-start gap-6">
-      <RowLabel>Profile picture</RowLabel>
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          className="inline-flex h-14 w-fit items-center justify-center rounded-xl bg-black px-6 font-display text-[14px] font-medium leading-6 text-white transition hover:bg-brand-bg-surface"
-        >
-          Upload image
-        </button>
-        <RowNote>
-          Must be JPEG, PNG or HEIC and cannot exceed 10MB.
-        </RowNote>
-      </div>
     </div>
   );
 }

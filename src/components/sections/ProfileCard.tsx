@@ -34,24 +34,18 @@ export function ProfileCard({
       )}
     >
       <header className="flex items-center gap-4">
-        <div className="relative h-[72px] w-[72px] shrink-0">
-          <span
-            aria-hidden
-            className="absolute left-0 top-[13px] h-20 w-20 rounded-full bg-[#d9d9d9]"
-          />
-          <div className="relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-full bg-[#ff7536] text-white">
-            {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={displayName}
-                fill
-                sizes="72px"
-                className="object-cover"
-              />
-            ) : (
-              <User className="h-8 w-8" strokeWidth={1.5} />
-            )}
-          </div>
+        <div className="relative grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-full bg-[#ff7536] text-white">
+          {avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              alt={displayName}
+              fill
+              sizes="72px"
+              className="object-cover"
+            />
+          ) : (
+            <User className="h-8 w-8" strokeWidth={1.5} />
+          )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center justify-between gap-2">
