@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { LoginSuccessPopup } from "@/components/sections/LoginSuccessPopup";
 import { ProfileCard } from "@/components/sections/ProfileCard";
+import { SettingsPanel } from "@/components/sections/SettingsPanel";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function formatRegistered(iso: string | undefined) {
@@ -49,6 +50,8 @@ export default async function ProfilePage({
   const metadata = user.user_metadata ?? {};
   const avatarUrl =
     typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
+  const provider = user.app_metadata?.provider;
+  const canChangePassword = provider === "email";
 
   // TODO: once Prisma migrations are live, fetch the local User row and read isSeller
   // from it. For now we default to false — override via metadata.isSeller in Supabase
@@ -56,20 +59,27 @@ export default async function ProfilePage({
   const isSeller = metadata.isSeller === true;
 
   return (
-    <div className="flex flex-col items-start gap-8">
+    <div className="flex flex-col gap-8">
       <h1 className="font-display text-[28px] font-bold leading-8 text-brand-text-primary-light">
         Profile
       </h1>
-      <ProfileCard
-        displayName={deriveDisplayName(metadata, user.email, user.id)}
-        registeredLabel={formatRegistered(user.created_at)}
-        avatarUrl={avatarUrl}
-        isSeller={isSeller}
-        walletBalance={640.2}
-        onHoldAmount={45.9}
-        potentialEarnings={20000}
-        currency="€"
-      />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <ProfileCard
+          displayName={deriveDisplayName(metadata, user.email, user.id)}
+          registeredLabel={formatRegistered(user.created_at)}
+          avatarUrl={avatarUrl}
+          isSeller={isSeller}
+          walletBalance={640.2}
+          onHoldAmount={45.9}
+          potentialEarnings={20000}
+          currency="€"
+          className="lg:shrink-0"
+        />
+        <SettingsPanel
+          email={user.email ?? "—"}
+          canChangePassword={canChangePassword}
+        />
+      </div>
       {welcome === "1" ? <LoginSuccessPopup /> : null}
     </div>
   );
