@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, User } from "lucide-react";
+import { ArrowRight, User } from "lucide-react";
 import Image from "next/image";
 import { LogoutButton } from "@/components/sections/LogoutButton";
 import { cn } from "@/lib/utils";
@@ -48,15 +48,9 @@ export function ProfileCard({
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-display text-[20px] font-medium leading-[26px] text-white">
-              {displayName}
-            </span>
-            <ChevronRight
-              className="h-6 w-6 text-brand-text-secondary-dark"
-              strokeWidth={1.5}
-            />
-          </div>
+          <span className="truncate font-display text-[20px] font-medium leading-[26px] text-white">
+            {displayName}
+          </span>
           <span className="font-display text-[16px] font-medium leading-5 text-brand-text-secondary-dark">
             {registeredLabel}
           </span>
