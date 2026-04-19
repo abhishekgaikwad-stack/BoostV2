@@ -10,6 +10,8 @@ export type Account = {
   price: number;
   oldPrice?: number;
   discount?: number;
+  sellerName?: string;
+  rating?: number;
 };
 
 export type Game = {

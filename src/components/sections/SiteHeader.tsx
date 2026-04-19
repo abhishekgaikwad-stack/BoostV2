@@ -3,11 +3,14 @@
 import { Globe, Heart, ShoppingBag, Tag, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SearchBar } from "@/components/cards/SearchBar";
 import { LoginPopup } from "@/components/sections/LoginPopup";
+import { RegionPopup } from "@/components/sections/RegionPopup";
 import { SearchOverlay } from "@/components/sections/SearchOverlay";
 import { assetUrl } from "@/lib/images";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const sidebarNav = [
@@ -19,7 +22,29 @@ const sidebarNav = [
 export function SiteHeader() {
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isLoginOpen, setLoginOpen] = useState(false);
+  const [isRegionOpen, setRegionOpen] = useState(false);
+  const [isSignedIn, setSignedIn] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setSignedIn(Boolean(data.user)));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session?.user));
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  function handleAccountClick() {
+    if (isSignedIn) {
+      router.push("/profile");
+    } else {
+      setLoginOpen(true);
+    }
+  }
 
   useEffect(() => {
     if (!isSearchOpen) return;
@@ -100,15 +125,16 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            aria-label="Language"
+            aria-label="Region"
+            onClick={() => setRegionOpen(true)}
             className="grid h-16 w-16 place-items-center rounded-2xl bg-black text-white transition hover:bg-brand-bg-surface"
           >
             <Globe className="h-6 w-6" strokeWidth={1.5} />
           </button>
           <button
             type="button"
-            aria-label="Account"
-            onClick={() => setLoginOpen(true)}
+            aria-label={isSignedIn ? "Profile" : "Sign in"}
+            onClick={handleAccountClick}
             className="grid h-16 w-16 place-items-center rounded-2xl bg-black text-white transition hover:bg-brand-bg-surface"
           >
             <User className="h-6 w-6" strokeWidth={1.5} />
@@ -116,6 +142,7 @@ export function SiteHeader() {
         </div>
 
         <LoginPopup open={isLoginOpen} onClose={() => setLoginOpen(false)} />
+        <RegionPopup open={isRegionOpen} onClose={() => setRegionOpen(false)} />
 
         {isSearchOpen ? (
           <>

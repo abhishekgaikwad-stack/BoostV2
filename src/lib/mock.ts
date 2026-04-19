@@ -19,6 +19,8 @@ const sampleAccount = (id: string): Account => ({
   price: 40.2,
   oldPrice: 80.4,
   discount: 50,
+  sellerName: "seller_name",
+  rating: 4.87,
 });
 
 export const newAccounts: Account[] = Array.from({ length: 10 }, (_, i) =>
@@ -121,4 +123,6 @@ export const flashSaleAccount: Account = {
   price: 40.2,
   oldPrice: 80.4,
   discount: 50,
+  sellerName: "seller_name",
+  rating: 4.87,
 };

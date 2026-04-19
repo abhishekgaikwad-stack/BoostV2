@@ -1,4 +1,4 @@
-import { Heart, Zap } from "lucide-react";
+import { Bookmark, Heart, Star, Zap } from "lucide-react";
 import type { Account } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -67,9 +67,36 @@ export function ProductCard({
           isDark ? "bg-brand-bg-elevated" : "bg-brand-bg-pill",
         )}
       >
-        <div className="absolute left-3 top-3 grid h-6 w-6 place-items-center rounded-lg bg-black">
-          <Zap className="h-4 w-4 text-brand-accent" fill="currentColor" />
+        <div className="absolute inset-x-3 top-3 flex items-center justify-between">
+          <span className="grid h-6 w-6 place-items-center rounded-lg bg-black">
+            <Zap className="h-4 w-4 text-brand-accent" fill="currentColor" />
+          </span>
+          <span className="grid h-6 w-6 place-items-center rounded-lg bg-black text-white">
+            <Bookmark className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </span>
         </div>
+
+        {(account.sellerName || account.rating !== undefined) && (
+          <div className="absolute inset-x-3 bottom-3 flex h-6 items-center justify-between rounded-lg bg-black px-2 text-white">
+            {account.sellerName ? (
+              <span className="font-display text-[10px] font-medium leading-3 tracking-[0.05em]">
+                {account.sellerName}
+              </span>
+            ) : null}
+            {account.rating !== undefined ? (
+              <span className="flex items-center gap-1">
+                <Star
+                  className="h-3 w-3 text-brand-accent"
+                  fill="currentColor"
+                  strokeWidth={0}
+                />
+                <span className="font-display text-[10px] font-medium leading-3 tracking-[0.05em]">
+                  {account.rating.toFixed(2)}
+                </span>
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <h3
