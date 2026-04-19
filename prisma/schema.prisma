@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  DELIVERED
+  REFUNDED
+}
+
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  listings Account[] @relation("SellerAccounts")
+  orders   Order[]
+
+  @@index([role])
+}
+
+model Game {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  coverImage  String?
+
+  accounts Account[]
+}
+
+model Account {
+  id          String        @id @default(cuid())
+  gameId      String
+  title       String
+  description String?
+  level       Int?
+  rank        String?
+  price       Int
+  images      String[]
+  status      AccountStatus @default(AVAILABLE)
+  sellerId    String        @db.Uuid
+  createdAt   DateTime      @default(now())
+
+  game   Game    @relation(fields: [gameId], references: [id], onDelete: Restrict)
+  seller User    @relation("SellerAccounts", fields: [sellerId], references: [id], onDelete: Restrict)
+  orders Order[]
+
+  @@index([gameId, status])
+  @@index([sellerId])
+  @@index([status, createdAt])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String      @db.Uuid
+  accountId       String
+  amount          Int
+  stripeSessionId String?     @unique
+  status          OrderStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  credential Credential?
+
+  @@index([userId, createdAt])
+  @@index([accountId])
+  @@index([status])
+}
+
+model Credential {
+  id                String    @id @default(cuid())
+  orderId           String    @unique
+  encryptedLogin    String
+  encryptedPassword String
+  deliveredAt       DateTime?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
