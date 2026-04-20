@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock3, Headphones, ShieldCheck, Zap } from "lucide-react";
+import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -56,7 +56,7 @@ export function BuyBox({ offer }: { offer: Offer }) {
           <span className="rounded-md bg-brand-accent px-2 py-1 font-display text-[11px] font-bold text-black">
             -{offer.discount}%
           </span>
-          <span className="uppercase">
+          <span className="uppercase text-brand-accent">
             {offer.offerEndsLabel ?? "Limited offer"}
           </span>
         </div>
@@ -101,21 +101,21 @@ export function BuyBox({ offer }: { offer: Offer }) {
         type="button"
         onClick={handleBuyNow}
         disabled={pending || isSignedIn === null}
-        className="inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[15px] font-medium text-black transition hover:brightness-95 disabled:opacity-60"
+        className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[15px] font-medium text-black transition hover:brightness-95 disabled:opacity-60"
       >
         {pending ? "Loading…" : "Buy Now"}
       </button>
 
-      <ul className="grid grid-cols-2 gap-3 text-brand-text-secondary-dark">
-        <TrustItem icon={ShieldCheck} label="14 Days Warranty" />
-        <TrustItem icon={Zap} label="Instant Delivery" />
-        <TrustItem icon={Headphones} label="24/7 Human Support" />
+      <ul className="grid grid-cols-2 gap-3 text-brand-text-secondary-dark [&>li]:justify-center [&>li:last-child]:col-span-2">
+        <TrustItem icon="hugeicons:shield-02" label="14 Days Warranty" />
+        <TrustItem icon="hugeicons:flash" label="Instant Delivery" />
+        <TrustItem icon="hugeicons:question" label="24/7 Human Support" />
       </ul>
 
       <label className="flex items-center gap-2 font-display text-[12px] font-medium text-brand-text-secondary-dark">
         <input
           type="checkbox"
-          className="h-4 w-4 rounded border-brand-border-subtle bg-brand-bg-elevated"
+          className="h-5 w-5 appearance-none rounded border border-brand-border-subtle bg-brand-bg-elevated checked:bg-brand-accent checked:bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2012%2010%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M1%205l4%204l6-8%22%2F%3E%3C%2Fsvg%3E')] checked:bg-[length:12px_12px] checked:bg-center checked:bg-no-repeat"
         />
         Email me with news and offers
       </label>
@@ -140,19 +140,11 @@ export function BuyBox({ offer }: { offer: Offer }) {
   );
 }
 
-function TrustItem({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof Clock3;
-  label: string;
-}) {
+function TrustItem({ icon, label }: { icon: string; label: string }) {
   return (
     <li className="flex items-center gap-2">
-      <span className="grid h-6 w-6 place-items-center rounded-lg bg-brand-bg-elevated">
-        <Icon className="h-3.5 w-3.5 text-brand-accent" strokeWidth={1.5} />
-      </span>
-      <span className="font-display text-[12px] font-medium leading-4">
+      <Icon icon={icon} className="h-6 w-6 text-brand-accent" />
+      <span className="font-display text-[12px] font-normal leading-4 text-brand-text-primary-dark">
         {label}
       </span>
     </li>

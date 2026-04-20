@@ -34,7 +34,7 @@ export default async function OfferPage({
         {offer.title}
       </h1>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         <div className="flex flex-col gap-6 rounded-[32px] border border-brand-bg-pill bg-white p-6">
           <OfferGallery offer={offer} />
           <OfferDescription description={offer.description} />
