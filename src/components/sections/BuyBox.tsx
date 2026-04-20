@@ -112,10 +112,10 @@ export function BuyBox({ offer }: { offer: Offer }) {
         <TrustItem icon="hugeicons:question" label="24/7 Human Support" />
       </ul>
 
-      <label className="flex items-center gap-2 font-display text-[12px] font-medium text-brand-text-secondary-dark">
+      <label className="flex items-center justify-center gap-2 font-display text-[12px] font-normal leading-4 text-brand-text-primary-dark">
         <input
           type="checkbox"
-          className="h-5 w-5 appearance-none rounded border border-brand-border-subtle bg-brand-bg-elevated checked:bg-brand-accent checked:bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2012%2010%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M1%205l4%204l6-8%22%2F%3E%3C%2Fsvg%3E')] checked:bg-[length:12px_12px] checked:bg-center checked:bg-no-repeat"
+          className="h-5 w-5 appearance-none rounded border border-brand-border-subtle bg-brand-bg-elevated checked:bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2012%2010%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M1%205l4%204l6-8%22%2F%3E%3C%2Fsvg%3E')] checked:bg-[length:12px_12px] checked:bg-center checked:bg-no-repeat"
         />
         Email me with news and offers
       </label>
