@@ -15,14 +15,14 @@ export function SellerCard({
       <header className="flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-start gap-4">
           <div className="relative h-16 w-16 shrink-0">
-            <div className="h-16 w-16 overflow-hidden rounded-full bg-brand-bg-elevated">
+            <div className="h-16 w-16 overflow-hidden rounded-[999px] bg-brand-bg-elevated">
               {seller.avatarUrl ? (
                 <Image
                   src={seller.avatarUrl}
                   alt={seller.name}
                   fill
                   sizes="64px"
-                  className="object-cover"
+                  className="rounded-[999px] object-cover"
                 />
               ) : null}
             </div>
