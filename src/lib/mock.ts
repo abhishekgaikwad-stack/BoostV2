@@ -59,12 +59,14 @@ const newGameSlugs: Array<{ slug: string; name: string }> = [
 
 export const popularGames: Game[] = popularGameSlugs.map((g, i) => ({
   id: `game-${i + 1}`,
+  slug: g.slug,
   name: g.name,
   cover: g.slug,
 }));
 
 export const newGames: Game[] = newGameSlugs.map((g, i) => ({
   id: `new-game-${i + 1}`,
+  slug: g.slug,
   name: g.name,
   cover: g.slug,
 }));
@@ -185,4 +187,145 @@ export function similarOffers(gameSlug: string, excludeId: string): Account[] {
   return newAccounts
     .filter((account) => account.gameSlug === gameSlug && account.id !== excludeId)
     .slice(0, 5);
+}
+
+const knownGames: Record<string, string> = {
+  valorant: "Valorant",
+  "cold-war": "Cold War",
+  fortnite: "Fortnite",
+  "cs-go": "CS:GO",
+  "gta-v": "GTA V",
+  minecraft: "Minecraft",
+  roblox: "Roblox",
+  "rocket-league": "Rocket League",
+  "overwatch-2": "Overwatch II",
+  "rainbow-six-siege": "Rainbow Six",
+  "clash-royale": "Clash Royale",
+  osrs: "Old School RuneScape",
+  "call-of-duty": "Call of Duty",
+  "league-of-legends": "League of Legends",
+};
+
+export function findGameBySlug(slug: string): Game | null {
+  const name = knownGames[slug];
+  if (!name) return null;
+  return { id: slug, name, cover: slug };
+}
+
+export function offersForGame(gameSlug: string): Account[] {
+  // Currently all mock accounts are valorant. When real data flows through
+  // Prisma this becomes `prisma.account.findMany({ where: { game: { slug } } })`.
+  if (gameSlug !== "valorant") return [];
+  return newAccounts.filter((account) => account.gameSlug === gameSlug);
+}
+
+export type Faq = { question: string; answer: string };
+
+export const genericFaqs: Faq[] = [
+  {
+    question: "How does account delivery work?",
+    answer:
+      "Once payment clears, the seller's credentials are unlocked in your orders page within seconds. You can also check your email for a copy.",
+  },
+  {
+    question: "Is buying a game account safe?",
+    answer:
+      "Every seller is KYC-verified and every order is protected by our 14-day warranty. If access is ever revoked within that window you get a full refund.",
+  },
+  {
+    question: "What happens if the account gets banned?",
+    answer:
+      "Open a dispute from your order page within 14 days. We hold the seller's funds until the issue is resolved, so refunds are fast.",
+  },
+  {
+    question: "Can I change the email and password after purchase?",
+    answer:
+      "Yes — we strongly recommend it. The delivery email includes step-by-step instructions to secure the account under your own details.",
+  },
+  {
+    question: "How do I contact support?",
+    answer:
+      "24/7 human support via chat on every page, or reply directly to any order confirmation email.",
+  },
+  {
+    question: "What is your refund policy?",
+    answer:
+      "Full refund within 14 days if the account is inaccessible, falsely described, or banned for reasons predating the sale.",
+  },
+];
+
+// Keep the old export name available for any existing imports.
+export const accountFaqs = genericFaqs;
+
+const faqsByGame: Record<string, Faq[]> = {
+  valorant: [
+    {
+      question: "Will my Valorant account keep its current rank?",
+      answer:
+        "Yes. Ranks stay exactly as listed. However Riot may periodically decay inactive competitive ratings, so jump into a match soon after delivery.",
+    },
+    {
+      question: "Which regions are Valorant accounts available for?",
+      answer:
+        "We list NA, EU, KR, AP (Asia Pacific) and BR on every listing — the region is shown on the card. You can only play on the region the account was created in.",
+    },
+    {
+      question: "Do the unlocked agents and skins transfer with the account?",
+      answer:
+        "Everything tied to the Riot account stays — agents, weapon skins, buddies, sprays, player cards, and cosmetic trackers.",
+    },
+    {
+      question: "Can I ranked queue on the day I buy?",
+      answer:
+        "If the account already cleared the placement matches (most of ours have), yes. Listings will say 'unranked' if placements still need to be played.",
+    },
+    {
+      question: "What happens if Riot bans the account later?",
+      answer:
+        "Our 14-day warranty covers pre-existing violations. Bans caused by cheating or violations after purchase are the buyer's responsibility.",
+    },
+    {
+      question: "Can I change the email on a Valorant account?",
+      answer:
+        "Yes — the delivery email includes step-by-step instructions for the Riot email and password swap. We recommend doing this within 24 hours of purchase.",
+    },
+  ],
+  fortnite: [
+    {
+      question: "Will all skins and V-Bucks transfer?",
+      answer:
+        "Yes — everything on the Epic Games account moves with it: skins, pickaxes, gliders, emotes, back blings, and any remaining V-Bucks.",
+    },
+    {
+      question: "Does the account work on all platforms?",
+      answer:
+        "Fortnite accounts are cross-platform by default. Some console-locked cosmetics may only display on their original platform.",
+    },
+    {
+      question: "What if the account has 2FA enabled?",
+      answer:
+        "The seller disables 2FA before delivery and includes the current email password. Re-enable 2FA on your own device after transfer.",
+    },
+  ],
+  "cs-go": [
+    {
+      question: "Do accounts come with Prime Status?",
+      answer:
+        "Each listing states whether Prime is active. Prime-only accounts are clearly labelled with a Prime badge.",
+    },
+    {
+      question: "Will I keep the current rank?",
+      answer:
+        "The competitive rank transfers intact. Note that Valve's matchmaking can adjust ratings downward after periods of inactivity.",
+    },
+    {
+      question: "Are items in the inventory tradeable?",
+      answer:
+        "Trade holds reset when the account changes hands. Items will be tradeable again after the standard 7-day Steam cooldown.",
+    },
+  ],
+};
+
+export function faqsForGame(slug: string): Faq[] {
+  return faqsByGame[slug] ?? genericFaqs;
 }

@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { popularGames } from "@/lib/mock";
 import { gameImage } from "@/lib/images";
 
@@ -36,33 +37,36 @@ export function SearchOverlay() {
       </div>
 
       <div className="grid grid-cols-4 gap-x-6 gap-y-4">
-        {games.map((game) => (
-          <button
-            key={game.id}
-            type="button"
-            className="flex items-center gap-3 rounded-[calc(var(--spacing)*6)] p-1 text-left transition hover:bg-brand-bg-surface"
-          >
-            <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-brand-border">
-              {game.cover ? (
-                <Image
-                  src={gameImage(game.cover)}
-                  alt={game.name}
-                  fill
-                  sizes="80px"
-                  className="object-cover"
-                />
-              ) : null}
-            </span>
-            <span className="flex flex-col gap-1">
-              <span className="font-display text-[14px] font-medium leading-4 text-brand-text-primary-dark">
-                {game.name}
+        {games.map((game) => {
+          const slug = game.slug ?? game.cover ?? game.id;
+          return (
+            <Link
+              key={game.id}
+              href={`/games/${slug}`}
+              className="flex items-center gap-3 rounded-[calc(var(--spacing)*6)] p-1 text-left transition hover:bg-brand-bg-surface"
+            >
+              <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-brand-border">
+                {game.cover ? (
+                  <Image
+                    src={gameImage(game.cover)}
+                    alt={game.name}
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
+                ) : null}
               </span>
-              <span className="font-display text-[12px] font-medium leading-4 text-brand-text-secondary-dark">
-                Accounts
+              <span className="flex flex-col gap-1">
+                <span className="font-display text-[14px] font-medium leading-4 text-brand-text-primary-dark">
+                  {game.name}
+                </span>
+                <span className="font-display text-[12px] font-medium leading-4 text-brand-text-secondary-dark">
+                  Accounts
+                </span>
               </span>
-            </span>
-          </button>
-        ))}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

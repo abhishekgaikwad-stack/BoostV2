@@ -1,5 +1,6 @@
-import { ArrowRight, User } from "lucide-react";
+import { User } from "lucide-react";
 import Image from "next/image";
+import { AccountTypeButton } from "@/components/sections/AccountTypeButton";
 import { LogoutButton } from "@/components/sections/LogoutButton";
 import { cn } from "@/lib/utils";
 
@@ -137,13 +138,7 @@ function BuyerPromo({
           </span>
         </div>
       </div>
-      <button
-        type="button"
-        className="inline-flex h-10 w-fit items-center gap-2 rounded-lg bg-black px-3 font-display text-[14px] font-medium leading-6 text-white transition hover:bg-brand-bg-elevated"
-      >
-        Start selling
-        <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
-      </button>
+      <AccountTypeButton isSeller={false} label="Start selling" />
     </section>
   );
 }

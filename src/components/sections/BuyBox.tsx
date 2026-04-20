@@ -124,13 +124,13 @@ export function BuyBox({ offer }: { offer: Offer }) {
         {paymentMethods.map((method) => (
           <span
             key={method.slug}
-            className="relative inline-block h-7 w-11 overflow-hidden rounded-md bg-brand-bg-elevated"
+            className="relative inline-block h-8 w-[50px] overflow-hidden rounded-md bg-brand-bg-elevated"
           >
             <Image
               src={paymentIcon(method.slug)}
               alt={method.name}
               fill
-              sizes="44px"
+              sizes="50px"
               className="object-contain"
             />
           </span>

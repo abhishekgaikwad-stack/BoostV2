@@ -18,7 +18,7 @@ export function ProductCard({
 
   return (
     <Link
-      href={`/game/${account.gameSlug}/${account.id}`}
+      href={`/games/${account.gameSlug}/${account.id}`}
       className={cn(
         "flex w-full flex-col gap-4 rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:shadow-lg",
         isDark

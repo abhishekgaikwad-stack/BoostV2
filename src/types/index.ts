@@ -44,6 +44,7 @@ export type Offer = Account & {
 export type Game = {
   id: string;
   name: string;
+  slug?: string;
   cover?: string;
 };
 

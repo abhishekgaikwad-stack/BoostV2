@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { Game } from "@/types";
 import { gameImage } from "@/lib/images";
 import { cn } from "@/lib/utils";
@@ -12,8 +13,12 @@ export function SquareProductCard({
   tone?: "light" | "dark";
   className?: string;
 }) {
+  const slug = game.slug ?? game.cover ?? game.id;
   return (
-    <div className={cn("flex w-20 flex-col items-center gap-2", className)}>
+    <Link
+      href={`/games/${slug}`}
+      className={cn("flex w-20 flex-col items-center gap-2", className)}
+    >
       <div
         className={cn(
           "relative aspect-square w-20 overflow-hidden rounded-3xl",
@@ -40,6 +45,6 @@ export function SquareProductCard({
       >
         {game.name}
       </span>
-    </div>
+    </Link>
   );
 }

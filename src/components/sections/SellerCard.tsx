@@ -13,20 +13,22 @@ export function SellerCard({
     <section className="flex flex-col gap-6 rounded-3xl bg-black p-6 text-white">
       <header className="flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-start gap-4">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-brand-bg-elevated">
-            {seller.avatarUrl ? (
-              <Image
-                src={seller.avatarUrl}
-                alt={seller.name}
-                fill
-                sizes="64px"
-                className="object-cover"
-              />
-            ) : null}
+          <div className="relative h-16 w-16 shrink-0">
+            <div className="h-16 w-16 overflow-hidden rounded-full bg-brand-bg-elevated">
+              {seller.avatarUrl ? (
+                <Image
+                  src={seller.avatarUrl}
+                  alt={seller.name}
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                />
+              ) : null}
+            </div>
             {seller.isOnline ? (
               <span
                 aria-hidden
-                className="absolute bottom-1 right-1 h-3 w-3 rounded-full border-2 border-black bg-brand-success"
+                className="absolute right-0 top-1 h-4 w-4 rounded-full border-2 border-black bg-brand-success"
               />
             ) : null}
           </div>
