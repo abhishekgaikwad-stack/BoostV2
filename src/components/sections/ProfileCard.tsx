@@ -54,7 +54,7 @@ export function ProfileCard({
           <span className="truncate font-display text-[20px] font-medium leading-[26px] text-white">
             {displayName}
           </span>
-          <span className="font-display text-[16px] font-medium leading-5 text-brand-text-secondary-dark">
+          <span className="font-display text-[12px] font-medium leading-4 text-brand-text-secondary-dark">
             {registeredLabel}
           </span>
           {isSeller && storeId ? (

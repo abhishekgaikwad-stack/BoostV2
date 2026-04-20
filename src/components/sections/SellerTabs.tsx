@@ -2,7 +2,7 @@
 
 import { Star } from "lucide-react";
 import { useState } from "react";
-import { ProductCard } from "@/components/cards/ProductCard";
+import { SellerListings } from "@/components/sections/SellerListings";
 import { cn } from "@/lib/utils";
 import type { Account, OfferReview } from "@/types";
 
@@ -38,17 +38,10 @@ export function SellerTabs({
       </div>
 
       {active === "listings" ? (
-        offers.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {offers.map((offer) => (
-              <ProductCard key={offer.id} account={offer} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-brand-border-light bg-brand-bg-light p-10 text-center font-display text-[14px] font-medium text-brand-text-secondary-light">
-            {sellerName} has no active listings right now.
-          </div>
-        )
+        <SellerListings
+          offers={offers}
+          emptyLabel={`${sellerName} has no active listings right now.`}
+        />
       ) : reviews.length > 0 ? (
         <div className="flex flex-col gap-3 rounded-[32px] bg-black p-6 text-white sm:p-8">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
