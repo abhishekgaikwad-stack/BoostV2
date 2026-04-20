@@ -140,7 +140,47 @@ const sampleSeller: Seller = {
   isOnline: true,
   rating: 4.5,
   reviewCount: 4049,
+  storeId: 100,
 };
+
+export type SellerProfile = Seller & {
+  storeId: number;
+  registeredAt: string; // ISO date
+  productCount: number;
+  reviews: OfferReview[];
+};
+
+const sampleOfferReviewFactory = (id: string, suffix: string): OfferReview => ({
+  id,
+  rating: 5,
+  body: "really good communication and got what i wanted! will 100% buy again.",
+  date: "16 April 2026",
+  user: `User-${suffix}`,
+  userSubtitle: "Valorant Account",
+});
+
+const sellersByStoreId: Record<number, SellerProfile> = {
+  100: {
+    ...sampleSeller,
+    storeId: 100,
+    registeredAt: "2023-05-12T00:00:00Z",
+    productCount: 10,
+    reviews: Array.from({ length: 8 }, (_, i) =>
+      sampleOfferReviewFactory(`emp-rev-${i + 1}`, String(1234 + i)),
+    ),
+  },
+};
+
+export function findSellerByStoreId(storeId: number): SellerProfile | null {
+  return sellersByStoreId[storeId] ?? null;
+}
+
+export function offersForSeller(storeId: number): Account[] {
+  // Only storeId 100 has listings in the mock. When Prisma is live:
+  //   return prisma.account.findMany({ where: { seller: { storeId } } })
+  if (storeId !== 100) return [];
+  return newAccounts;
+}
 
 const sampleOfferReview = (id: string, suffix: string): OfferReview => ({
   id,

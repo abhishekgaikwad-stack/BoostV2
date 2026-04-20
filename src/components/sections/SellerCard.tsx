@@ -1,5 +1,6 @@
 import { Gamepad2, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import type { OfferReview, Seller } from "@/types";
 
 export function SellerCard({
@@ -39,13 +40,15 @@ export function SellerCard({
             <span className="font-display text-[16px] font-medium leading-5">
               {seller.name}
             </span>
-            <button
-              type="button"
-              className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-bg-elevated px-3 py-2 font-display text-[14px] font-medium text-white transition hover:bg-brand-border"
-            >
-              <Gamepad2 className="h-4 w-4" strokeWidth={1.5} />
-              Visit Store
-            </button>
+            {seller.storeId ? (
+              <Link
+                href={`/seller/${seller.storeId}`}
+                className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-bg-elevated px-3 py-2 font-display text-[14px] font-medium text-white transition hover:bg-brand-border"
+              >
+                <Gamepad2 className="h-4 w-4" strokeWidth={1.5} />
+                Visit Store
+              </Link>
+            ) : null}
           </div>
         </div>
 

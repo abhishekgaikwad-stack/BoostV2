@@ -22,6 +22,7 @@ export type Seller = {
   isOnline: boolean;
   rating: number;
   reviewCount: number;
+  storeId?: number;
 };
 
 export type OfferReview = {
