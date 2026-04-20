@@ -1,0 +1,122 @@
+"use client";
+
+import { ChevronDown } from "lucide-react";
+import { useActionState } from "react";
+import {
+  type CreateListingState,
+  createListing,
+} from "@/app/(dashboard)/sell/actions";
+import type { Game } from "@/types";
+
+const initialState: CreateListingState = {};
+
+export function CreateListingForm({ games }: { games: Game[] }) {
+  const [state, formAction, pending] = useActionState(
+    createListing,
+    initialState,
+  );
+
+  return (
+    <form
+      action={formAction}
+      className="flex flex-col gap-5 rounded-[32px] border border-brand-border-light bg-white p-6"
+    >
+      <Field label="Game">
+        <div className="relative">
+          <select
+            name="gameId"
+            required
+            defaultValue=""
+            className="h-12 w-full appearance-none rounded-xl bg-brand-bg-pill px-4 pr-10 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
+          >
+            <option value="" disabled>
+              Select a game
+            </option>
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-text-secondary-dark"
+            strokeWidth={1.5}
+          />
+        </div>
+      </Field>
+
+      <Field label="Title">
+        <input
+          name="title"
+          required
+          placeholder="e.g. 20M Valorant account with all agents"
+          className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+        />
+      </Field>
+
+      <Field label="Description">
+        <textarea
+          name="description"
+          rows={6}
+          placeholder="Explain what's on the account — unlocked agents, rank, warnings, anything the buyer should know."
+          className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Selling price (€)">
+          <input
+            name="price"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+            placeholder="40.20"
+            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+          />
+        </Field>
+        <Field label="MRP / old price (€)">
+          <input
+            name="oldPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="80.40"
+            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+          />
+        </Field>
+      </div>
+
+      {state.error ? (
+        <p className="font-display text-[12px] font-medium text-brand-discount">
+          {state.error}
+        </p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-2 inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[14px] font-medium text-brand-text-primary-light transition hover:brightness-95 disabled:opacity-60"
+      >
+        {pending ? "Creating…" : "Create listing"}
+      </button>
+    </form>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
