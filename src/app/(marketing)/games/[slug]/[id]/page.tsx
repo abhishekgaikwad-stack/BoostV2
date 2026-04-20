@@ -7,6 +7,7 @@ import { OfferGallery } from "@/components/sections/OfferGallery";
 import { SellerCard } from "@/components/sections/SellerCard";
 import { SimilarAccounts } from "@/components/sections/SimilarAccounts";
 import { findOffer, similarOffers } from "@/lib/mock";
+import { resolveSellerProfile } from "@/lib/sellers";
 
 export default async function OfferPage({
   params,
@@ -19,6 +20,19 @@ export default async function OfferPage({
   if (!offer) notFound();
 
   const similar = similarOffers(slug, id);
+
+  // Pull the seller's real name/avatar from Supabase when available so the
+  // offer page, Visit Store link, and /seller/<storeId> page agree.
+  const realSeller = offer.seller.storeId
+    ? await resolveSellerProfile(offer.seller.storeId)
+    : null;
+  const seller = realSeller
+    ? {
+        ...offer.seller,
+        name: realSeller.name,
+        avatarUrl: realSeller.avatarUrl,
+      }
+    : offer.seller;
 
   return (
     <div className="flex flex-col gap-8">
@@ -38,7 +52,7 @@ export default async function OfferPage({
         <div className="flex flex-col gap-6 rounded-[32px] border border-brand-bg-pill bg-white p-6">
           <OfferGallery offer={offer} />
           <OfferDescription description={offer.description} />
-          <SellerCard seller={offer.seller} reviews={offer.reviews} />
+          <SellerCard seller={seller} reviews={offer.reviews} />
         </div>
         <BuyBox offer={offer} />
       </div>

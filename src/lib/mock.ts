@@ -134,15 +134,6 @@ export const flashSaleAccount: Account = {
   rating: 4.87,
 };
 
-const sampleSeller: Seller = {
-  id: "seller-empire",
-  name: "Empire Gaming",
-  isOnline: true,
-  rating: 4.5,
-  reviewCount: 4049,
-  storeId: 100,
-};
-
 export type SellerProfile = Seller & {
   storeId: number;
   registeredAt: string; // ISO date
@@ -150,7 +141,7 @@ export type SellerProfile = Seller & {
   reviews: OfferReview[];
 };
 
-const sampleOfferReviewFactory = (id: string, suffix: string): OfferReview => ({
+const buildReview = (id: string, suffix: string): OfferReview => ({
   id,
   rating: 5,
   body: "really good communication and got what i wanted! will 100% buy again.",
@@ -159,16 +150,35 @@ const sampleOfferReviewFactory = (id: string, suffix: string): OfferReview => ({
   userSubtitle: "Valorant Account",
 });
 
+// Canonical seller record. Anything that needs to display info about this
+// seller (offer page, /seller/[storeId]) should derive from this object so
+// the numbers stay in sync.
+const empireGaming: SellerProfile = {
+  id: "seller-empire",
+  name: "Empire Gaming",
+  isOnline: true,
+  rating: 4.5,
+  reviewCount: 4049,
+  storeId: 100,
+  registeredAt: "2023-05-12T00:00:00Z",
+  productCount: 10,
+  reviews: Array.from({ length: 8 }, (_, i) =>
+    buildReview(`emp-rev-${i + 1}`, String(1234 + i)),
+  ),
+};
+
+const sampleSeller: Seller = {
+  id: empireGaming.id,
+  name: empireGaming.name,
+  avatarUrl: empireGaming.avatarUrl,
+  isOnline: empireGaming.isOnline,
+  rating: empireGaming.rating,
+  reviewCount: empireGaming.reviewCount,
+  storeId: empireGaming.storeId,
+};
+
 const sellersByStoreId: Record<number, SellerProfile> = {
-  100: {
-    ...sampleSeller,
-    storeId: 100,
-    registeredAt: "2023-05-12T00:00:00Z",
-    productCount: 10,
-    reviews: Array.from({ length: 8 }, (_, i) =>
-      sampleOfferReviewFactory(`emp-rev-${i + 1}`, String(1234 + i)),
-    ),
-  },
+  [empireGaming.storeId]: empireGaming,
 };
 
 export function findSellerByStoreId(storeId: number): SellerProfile | null {
@@ -176,20 +186,11 @@ export function findSellerByStoreId(storeId: number): SellerProfile | null {
 }
 
 export function offersForSeller(storeId: number): Account[] {
-  // Only storeId 100 has listings in the mock. When Prisma is live:
+  // Only Empire Gaming has listings in the mock. When Prisma is live:
   //   return prisma.account.findMany({ where: { seller: { storeId } } })
-  if (storeId !== 100) return [];
+  if (storeId !== empireGaming.storeId) return [];
   return newAccounts;
 }
-
-const sampleOfferReview = (id: string, suffix: string): OfferReview => ({
-  id,
-  rating: 5,
-  body: "really good communication and got what i wanted! will 100% buy again.",
-  date: "16 April 2026",
-  user: `User-${suffix}`,
-  userSubtitle: "Valorant Account",
-});
 
 export const sampleOffer: Offer = {
   ...sampleAccount("offer-1"),
@@ -207,11 +208,9 @@ How to log in to your account?
 • After ordering, you will receive the following account data: Login: Password: Email: Email password`,
   images: [],
   seller: sampleSeller,
-  reviews: [
-    sampleOfferReview("rev-1", "1234"),
-    sampleOfferReview("rev-2", "5678"),
-    sampleOfferReview("rev-3", "9101"),
-  ],
+  // Surface the first 3 of the seller's reviews on the offer page so the
+  // seller's own /seller/<storeId> page lists the same ones (plus more).
+  reviews: empireGaming.reviews.slice(0, 3),
   offerEndsLabel: "OFFER ENDS IN 42HRS 32MIN",
 };
 

@@ -3,7 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SellerTabs } from "@/components/sections/SellerTabs";
-import { findSellerByStoreId, offersForSeller } from "@/lib/mock";
+import { offersForSeller } from "@/lib/mock";
+import { resolveSellerProfile } from "@/lib/sellers";
 
 function formatRegistered(iso: string) {
   const date = new Date(iso);
@@ -23,7 +24,7 @@ export default async function SellerPage({
   const parsed = Number.parseInt(storeId, 10);
   if (!Number.isInteger(parsed)) notFound();
 
-  const seller = findSellerByStoreId(parsed);
+  const seller = await resolveSellerProfile(parsed);
   if (!seller) notFound();
 
   const offers = offersForSeller(parsed);
