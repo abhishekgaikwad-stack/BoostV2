@@ -4,6 +4,7 @@ import { Bookmark, Heart, Star, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Account } from "@/types";
+import { gameImage } from "@/lib/images";
 import { cn, discountPercent } from "@/lib/utils";
 
 export function ProductCard({
@@ -32,10 +33,18 @@ export function ProductCard({
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "h-10 w-10 rounded-lg",
+              "relative h-10 w-10 shrink-0 overflow-hidden rounded-lg",
               isDark ? "bg-brand-border" : "bg-brand-bg-pill",
             )}
-          />
+          >
+            <Image
+              src={gameImage(account.game.cover ?? account.game.slug)}
+              alt={account.game.name}
+              fill
+              sizes="40px"
+              className="object-cover"
+            />
+          </div>
           <div className="flex flex-col">
             <span
               className={cn(
