@@ -9,6 +9,7 @@ export type ProfileCardProps = {
   registeredLabel: string;
   avatarUrl?: string | null;
   isSeller: boolean;
+  storeId?: number | null;
   walletBalance?: number;
   onHoldAmount?: number;
   currency?: string;
@@ -21,6 +22,7 @@ export function ProfileCard({
   registeredLabel,
   avatarUrl,
   isSeller,
+  storeId,
   walletBalance = 0,
   onHoldAmount = 0,
   currency = "€",
@@ -55,6 +57,11 @@ export function ProfileCard({
           <span className="font-display text-[16px] font-medium leading-5 text-brand-text-secondary-dark">
             {registeredLabel}
           </span>
+          {isSeller && storeId ? (
+            <span className="mt-1 inline-flex w-fit items-center rounded-md bg-brand-bg-elevated px-2 py-0.5 font-mono text-[11px] font-medium tracking-[0.05em] text-brand-text-secondary-dark">
+              STORE #{storeId}
+            </span>
+          ) : null}
         </div>
       </header>
 

@@ -35,6 +35,7 @@ model User {
   avatarUrl String?
   role      Role     @default(USER)
   isSeller  Boolean  @default(false)
+  storeId   Int      @unique @default(autoincrement())
   createdAt DateTime @default(now())
 
   listings Account[] @relation("SellerAccounts")

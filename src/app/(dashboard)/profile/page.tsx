@@ -65,6 +65,8 @@ export default async function ProfilePage({
   // from it. For now we default to false — override via metadata.isSeller in Supabase
   // for a quick preview of the seller variant.
   const isSeller = metadata.isSeller === true;
+  const storeId =
+    typeof metadata.storeId === "number" ? metadata.storeId : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -77,6 +79,7 @@ export default async function ProfilePage({
           registeredLabel={formatRegistered(user.created_at)}
           avatarUrl={avatarUrl}
           isSeller={isSeller}
+          storeId={storeId}
           walletBalance={640.2}
           onHoldAmount={45.9}
           potentialEarnings={20000}

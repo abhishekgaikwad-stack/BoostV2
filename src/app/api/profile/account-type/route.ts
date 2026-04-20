@@ -25,14 +25,13 @@ export async function PATCH(request: Request) {
     );
   }
 
-  // Primary: Supabase user_metadata so the ProfileCard picks it up immediately.
-  await supabase.auth.updateUser({ data: { isSeller: body.isSeller } });
-
-  // Secondary: mirror into Prisma User.isSeller (best-effort — swallows when
-  // DATABASE_URL isn't configured yet).
+  // Try Prisma first so we can capture the auto-assigned storeId (starts at 100
+  // per prisma/seed.ts) and mirror it into Supabase metadata. Without a DB,
+  // we just fall through and update metadata with isSeller only.
   let prismaSynced = true;
+  let storeId: number | undefined;
   try {
-    await prisma.user.upsert({
+    const row = await prisma.user.upsert({
       where: { id: user.id },
       update: { isSeller: body.isSeller },
       create: {
@@ -41,10 +40,22 @@ export async function PATCH(request: Request) {
         isSeller: body.isSeller,
       },
     });
+    storeId = row.storeId;
   } catch (error) {
     prismaSynced = false;
     console.warn("[profile/account-type] Prisma update failed:", error);
   }
 
-  return NextResponse.json({ isSeller: body.isSeller, prismaSynced });
+  await supabase.auth.updateUser({
+    data: {
+      isSeller: body.isSeller,
+      ...(storeId !== undefined ? { storeId } : {}),
+    },
+  });
+
+  return NextResponse.json({
+    isSeller: body.isSeller,
+    storeId: storeId ?? null,
+    prismaSynced,
+  });
 }
