@@ -43,7 +43,7 @@ export default async function SellerPage({
         <header className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="relative h-24 w-24 shrink-0">
-              <div className="h-24 w-24 overflow-hidden rounded-full bg-brand-bg-elevated">
+              <div className="h-24 w-24 overflow-hidden rounded-[32px] bg-brand-bg-elevated">
                 {seller.avatarUrl ? (
                   <Image
                     src={seller.avatarUrl}
