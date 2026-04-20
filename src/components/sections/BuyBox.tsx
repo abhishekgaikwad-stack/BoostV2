@@ -120,7 +120,7 @@ export function BuyBox({ offer }: { offer: Offer }) {
         Email me with news and offers
       </label>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-brand-border-subtle pt-3">
+      <div className="flex items-center justify-between border-t border-brand-border-subtle pt-3">
         {paymentMethods.map((method) => (
           <span
             key={method.slug}
@@ -131,7 +131,7 @@ export function BuyBox({ offer }: { offer: Offer }) {
               alt={method.name}
               fill
               sizes="44px"
-              className="object-contain p-1"
+              className="object-contain"
             />
           </span>
         ))}
