@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: Request) {
@@ -23,31 +22,32 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Missing avatarUrl" }, { status: 400 });
   }
 
-  // Primary: mirror into Supabase user metadata under a namespaced key.
-  // We deliberately don't write to `avatar_url` because OAuth providers
-  // overwrite that field on every sign-in; `boost_avatar_url` is ours
-  // and survives across sessions.
+  // Write to public.profiles (canonical) and mirror into user_metadata so
+  // the UI can pick it up without an extra DB read.
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email ?? `${user.id}@no-email.local`,
+        avatar_url: avatarUrl,
+      },
+      { onConflict: "id" },
+    );
+
+  if (error) {
+    console.error("[profile/avatar] profiles upsert failed:", error);
+    return NextResponse.json(
+      { error: "Could not save avatar URL" },
+      { status: 500 },
+    );
+  }
+
+  // Using a namespaced key so OAuth re-sign-ins don't clobber the uploaded
+  // avatar (providers overwrite user_metadata.avatar_url).
   await supabase.auth.updateUser({
     data: { boost_avatar_url: avatarUrl },
   });
 
-  // Secondary: persist on our Prisma User row. Swallow errors so the UI
-  // still updates if migrations haven't been run yet.
-  let prismaSynced = true;
-  try {
-    await prisma.user.upsert({
-      where: { id: user.id },
-      update: { avatarUrl },
-      create: {
-        id: user.id,
-        email: user.email ?? `${user.id}@no-email.local`,
-        avatarUrl,
-      },
-    });
-  } catch (error) {
-    prismaSynced = false;
-    console.warn("[profile/avatar] Prisma update failed:", error);
-  }
-
-  return NextResponse.json({ avatarUrl, prismaSynced });
+  return NextResponse.json({ avatarUrl });
 }

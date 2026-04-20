@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: Request) {
@@ -25,37 +24,41 @@ export async function PATCH(request: Request) {
     );
   }
 
-  // Try Prisma first so we can capture the auto-assigned storeId (starts at 100
-  // per prisma/seed.ts) and mirror it into Supabase metadata. Without a DB,
-  // we just fall through and update metadata with isSeller only.
-  let prismaSynced = true;
-  let storeId: number | undefined;
-  try {
-    const row = await prisma.user.upsert({
-      where: { id: user.id },
-      update: { isSeller: body.isSeller },
-      create: {
+  // Ensure a profile row exists, then flip is_seller. The `ensure_store_id`
+  // DB trigger auto-assigns store_id from public.store_id_seq (starting at
+  // 100) the first time is_seller becomes true.
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
         id: user.id,
         email: user.email ?? `${user.id}@no-email.local`,
-        isSeller: body.isSeller,
+        is_seller: body.isSeller,
       },
-    });
-    storeId = row.storeId;
-  } catch (error) {
-    prismaSynced = false;
-    console.warn("[profile/account-type] Prisma update failed:", error);
+      { onConflict: "id" },
+    )
+    .select("store_id, is_seller")
+    .single();
+
+  if (error) {
+    console.error("[profile/account-type] profiles upsert failed:", error);
+    return NextResponse.json(
+      { error: "Could not update account type" },
+      { status: 500 },
+    );
   }
 
+  // Mirror into Supabase user_metadata so client components see the change
+  // immediately without a DB round-trip.
   await supabase.auth.updateUser({
     data: {
-      isSeller: body.isSeller,
-      ...(storeId !== undefined ? { storeId } : {}),
+      isSeller: profile.is_seller,
+      ...(profile.store_id ? { storeId: profile.store_id } : {}),
     },
   });
 
   return NextResponse.json({
-    isSeller: body.isSeller,
-    storeId: storeId ?? null,
-    prismaSynced,
+    isSeller: profile.is_seller,
+    storeId: profile.store_id ?? null,
   });
 }

@@ -48,25 +48,29 @@ export default async function ProfilePage({
   const { welcome } = await searchParams;
 
   const metadata = user.user_metadata ?? {};
-  // Prefer the avatar the user uploaded (under a namespaced key that
-  // OAuth sign-ins don't overwrite), then fall back to the OAuth-supplied
-  // avatar_url, then null.
+  const provider = user.app_metadata?.provider;
+  const canChangePassword = provider === "email";
+
+  // Prefer the public.profiles row (canonical), fall back to Supabase
+  // user_metadata if the profile trigger hasn't fired yet.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, avatar_url, is_seller, store_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const customAvatar =
     typeof metadata.boost_avatar_url === "string"
       ? metadata.boost_avatar_url
       : null;
   const oauthAvatar =
     typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
-  const avatarUrl = customAvatar ?? oauthAvatar;
-  const provider = user.app_metadata?.provider;
-  const canChangePassword = provider === "email";
+  const avatarUrl = profile?.avatar_url ?? customAvatar ?? oauthAvatar;
 
-  // TODO: once Prisma migrations are live, fetch the local User row and read isSeller
-  // from it. For now we default to false — override via metadata.isSeller in Supabase
-  // for a quick preview of the seller variant.
-  const isSeller = metadata.isSeller === true;
+  const isSeller = profile?.is_seller ?? metadata.isSeller === true;
   const storeId =
-    typeof metadata.storeId === "number" ? metadata.storeId : null;
+    profile?.store_id ??
+    (typeof metadata.storeId === "number" ? metadata.storeId : null);
 
   return (
     <div className="flex flex-col gap-8">
@@ -75,7 +79,9 @@ export default async function ProfilePage({
       </h1>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <ProfileCard
-          displayName={deriveDisplayName(metadata, user.email, user.id)}
+          displayName={
+            profile?.name ?? deriveDisplayName(metadata, user.email, user.id)
+          }
           registeredLabel={formatRegistered(user.created_at)}
           avatarUrl={avatarUrl}
           isSeller={isSeller}
