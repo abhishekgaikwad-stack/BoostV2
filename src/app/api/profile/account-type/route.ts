@@ -43,7 +43,7 @@ export async function PATCH(request: Request) {
   if (error) {
     console.error("[profile/account-type] profiles upsert failed:", error);
     return NextResponse.json(
-      { error: "Could not update account type" },
+      { error: error.message ?? "Could not update account type" },
       { status: 500 },
     );
   }
