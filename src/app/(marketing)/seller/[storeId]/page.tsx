@@ -50,7 +50,7 @@ export default async function SellerPage({
                     alt={seller.name}
                     fill
                     sizes="96px"
-                    className="object-cover"
+                    className="rounded-[32px] object-cover"
                   />
                 ) : null}
               </div>
