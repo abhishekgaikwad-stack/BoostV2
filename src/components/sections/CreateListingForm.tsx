@@ -6,6 +6,7 @@ import {
   type CreateListingState,
   createListing,
 } from "@/app/(dashboard)/sell/actions";
+import { ImageUploader } from "@/components/forms/ImageUploader";
 import type { Game } from "@/types";
 
 const initialState: CreateListingState = {};
@@ -61,6 +62,10 @@ export function CreateListingForm({ games }: { games: Game[] }) {
           placeholder="Explain what's on the account — unlocked agents, rank, warnings, anything the buyer should know."
           className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
         />
+      </Field>
+
+      <Field label="Screenshots (optional)">
+        <ImageUploader name="images" />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">

@@ -33,6 +33,14 @@ export async function createListing(
   const description = rawDescription && rawDescription.length > 0 ? rawDescription : null;
   const priceRaw = formData.get("price")?.toString();
   const oldPriceRaw = formData.get("oldPrice")?.toString();
+  // formData.getAll returns every <input name="images"> we rendered — these
+  // were already uploaded client-side via presigned PUTs, so we just persist
+  // the URLs. Cap at 10 as a belt-and-braces check against tampering.
+  const images = formData
+    .getAll("images")
+    .map((value) => value.toString())
+    .filter((url) => typeof url === "string" && url.startsWith("https://"))
+    .slice(0, 10);
 
   if (!gameId) return { error: "Please select a game." };
   if (!title) return { error: "Title is required." };
@@ -64,6 +72,7 @@ export async function createListing(
       description,
       price,
       old_price: oldPrice,
+      images,
       status: "AVAILABLE",
     })
     .select("id, game:games(slug)")
