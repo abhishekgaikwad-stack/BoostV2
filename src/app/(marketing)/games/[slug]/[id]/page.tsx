@@ -6,7 +6,7 @@ import { OfferDescription } from "@/components/sections/OfferDescription";
 import { OfferGallery } from "@/components/sections/OfferGallery";
 import { SellerCard } from "@/components/sections/SellerCard";
 import { SimilarAccounts } from "@/components/sections/SimilarAccounts";
-import { findOffer, similarOffers } from "@/lib/mock";
+import { findOffer, similarOffers } from "@/lib/offers";
 import { resolveSellerProfile } from "@/lib/sellers";
 
 export default async function OfferPage({
@@ -16,10 +16,10 @@ export default async function OfferPage({
 }) {
   const { slug, id } = await params;
 
-  const offer = findOffer(slug, id);
+  const offer = await findOffer(slug, id);
   if (!offer) notFound();
 
-  const similar = similarOffers(slug, id);
+  const similar = await similarOffers(slug, id);
 
   // Pull the seller's real name/avatar from Supabase when available so the
   // offer page, Visit Store link, and /seller/<storeId> page agree.
@@ -41,7 +41,7 @@ export default async function OfferPage({
         className="inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border-light bg-white px-4 py-2 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:bg-brand-bg-light"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-        {offer.game} accounts
+        {offer.game.name} accounts
       </Link>
 
       <h1 className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-light">

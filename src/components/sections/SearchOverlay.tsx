@@ -38,11 +38,10 @@ export function SearchOverlay() {
 
       <div className="grid grid-cols-4 gap-x-6 gap-y-4">
         {games.map((game) => {
-          const slug = game.slug ?? game.cover ?? game.id;
           return (
             <Link
               key={game.id}
-              href={`/games/${slug}`}
+              href={`/games/${game.slug}`}
               className="flex items-center gap-3 rounded-[calc(var(--spacing)*6)] p-1 text-left transition hover:bg-brand-bg-surface"
             >
               <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-brand-border">

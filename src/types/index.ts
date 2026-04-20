@@ -1,18 +1,27 @@
+export type Game = {
+  id: string;
+  slug: string;
+  name: string;
+  subtitle?: string;
+  cover?: string;
+};
+
+// Mirrors a joined `Account { game: Game, seller: User }` relation — never
+// duplicate slug/name/sellerName on Account; always access through nested refs.
 export type Account = {
   id: string;
-  gameSlug: string;
-  game: string;
-  gameThumb?: string;
-  gameSubtitle: string;
+  game: Game;
+  seller: {
+    id: string;
+    name: string;
+    rating?: number;
+  };
   title: string;
   region: string;
   level: string;
   rank: string;
   price: number;
   oldPrice?: number;
-  discount?: number;
-  sellerName?: string;
-  rating?: number;
 };
 
 export type Seller = {
@@ -39,14 +48,8 @@ export type Offer = Account & {
   images: string[];
   seller: Seller;
   reviews: OfferReview[];
-  offerEndsLabel?: string;
-};
-
-export type Game = {
-  id: string;
-  name: string;
-  slug?: string;
-  cover?: string;
+  /** ISO-8601 timestamp when the offer expires. Client formats for display. */
+  offerEndsAt?: string;
 };
 
 export type Review = {

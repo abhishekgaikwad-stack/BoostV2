@@ -25,7 +25,7 @@ export function SellerListings({
   const games = useMemo(() => {
     const seen = new Map<string, string>();
     for (const offer of offers) {
-      if (!seen.has(offer.gameSlug)) seen.set(offer.gameSlug, offer.game);
+      if (!seen.has(offer.game.slug)) seen.set(offer.game.slug, offer.game.name);
     }
     return Array.from(seen, ([slug, name]) => ({ slug, name }));
   }, [offers]);
@@ -43,7 +43,7 @@ export function SellerListings({
     let list = offers;
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((o) => o.title.toLowerCase().includes(q));
-    if (game !== "all") list = list.filter((o) => o.gameSlug === game);
+    if (game !== "all") list = list.filter((o) => o.game.slug === game);
     const min = Number.parseFloat(minPrice);
     const max = Number.parseFloat(maxPrice);
     if (!Number.isNaN(min)) list = list.filter((o) => o.price >= min);

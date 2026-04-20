@@ -3,7 +3,7 @@
 import { Bookmark, Heart, Star, Zap } from "lucide-react";
 import Link from "next/link";
 import type { Account } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, discountPercent } from "@/lib/utils";
 
 export function ProductCard({
   account,
@@ -18,7 +18,7 @@ export function ProductCard({
 
   return (
     <Link
-      href={`/games/${account.gameSlug}/${account.id}`}
+      href={`/games/${account.game.slug}/${account.id}`}
       className={cn(
         "flex w-full flex-col gap-4 rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:shadow-lg",
         isDark
@@ -44,10 +44,10 @@ export function ProductCard({
                   : "text-brand-text-primary-light",
               )}
             >
-              {account.game}
+              {account.game.name}
             </span>
             <span className="font-display text-[10px] font-medium leading-3 tracking-[0.05em] text-brand-text-secondary-dark">
-              {account.gameSubtitle}
+              {account.game.subtitle}
             </span>
           </div>
         </div>
@@ -84,14 +84,14 @@ export function ProductCard({
           </span>
         </div>
 
-        {(account.sellerName || account.rating !== undefined) && (
+        {account.seller.name || account.seller.rating !== undefined ? (
           <div className="absolute inset-x-3 bottom-3 flex h-6 items-center justify-between rounded-lg bg-black px-2 text-white">
-            {account.sellerName ? (
+            {account.seller.name ? (
               <span className="font-display text-[10px] font-medium leading-3 tracking-[0.05em]">
-                {account.sellerName}
+                {account.seller.name}
               </span>
             ) : null}
-            {account.rating !== undefined ? (
+            {account.seller.rating !== undefined ? (
               <span className="flex items-center gap-1">
                 <Star
                   className="h-3 w-3 text-brand-accent"
@@ -99,12 +99,12 @@ export function ProductCard({
                   strokeWidth={0}
                 />
                 <span className="font-display text-[10px] font-medium leading-3 tracking-[0.05em]">
-                  {account.rating.toFixed(2)}
+                  {account.seller.rating.toFixed(2)}
                 </span>
               </span>
             ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       <h3
@@ -136,11 +136,14 @@ export function ProductCard({
           >
             US${account.price.toFixed(2)}
           </span>
-          {account.discount ? (
-            <span className="rounded-lg bg-brand-accent px-2 py-0.5 font-display text-[12px] font-bold leading-4 text-brand-text-primary-light">
-              -{account.discount}%
-            </span>
-          ) : null}
+          {(() => {
+            const pct = discountPercent(account.price, account.oldPrice);
+            return pct ? (
+              <span className="rounded-lg bg-brand-accent px-2 py-0.5 font-display text-[12px] font-bold leading-4 text-brand-text-primary-light">
+                -{pct}%
+              </span>
+            ) : null;
+          })()}
         </div>
         {account.oldPrice ? (
           <span

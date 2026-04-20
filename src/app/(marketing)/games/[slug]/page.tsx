@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { FaqSection } from "@/components/sections/FaqSection";
-import { faqsForGame, findGameBySlug, offersForGame } from "@/lib/mock";
+import { faqsForGame } from "@/lib/mock";
+import { findGameBySlug, offersForGame } from "@/lib/offers";
 
 export default async function GameListingPage({
   params,
@@ -12,10 +13,10 @@ export default async function GameListingPage({
 }) {
   const { slug } = await params;
 
-  const game = findGameBySlug(slug);
+  const game = await findGameBySlug(slug);
   if (!game) notFound();
 
-  const offers = offersForGame(slug);
+  const offers = await offersForGame(slug);
 
   return (
     <div className="flex flex-col gap-8">

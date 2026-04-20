@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { ProductCard } from "@/components/cards/ProductCard";
-import { flashSaleAccount } from "@/lib/mock";
+import { firstFlashOffer } from "@/lib/offers";
 
 const countdown = [
   { value: "42", label: "HOURS" },
@@ -8,7 +8,10 @@ const countdown = [
   { value: "31", label: "SECONDS" },
 ];
 
-export function FlashSaleSection() {
+export async function FlashSaleSection() {
+  const flashSaleAccount = await firstFlashOffer();
+  if (!flashSaleAccount) return null;
+
   return (
     <section className="grid gap-8 rounded-3xl bg-black p-8 lg:grid-cols-[1fr_auto] lg:items-center">
       <div className="flex flex-col gap-6">

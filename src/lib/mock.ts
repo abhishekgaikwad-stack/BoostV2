@@ -13,18 +13,23 @@ import type {
 
 const sampleAccount = (id: string): Account => ({
   id,
-  gameSlug: "valorant",
-  game: "Valorant",
-  gameSubtitle: "Game Account",
+  game: {
+    id: "valorant",
+    slug: "valorant",
+    name: "Valorant",
+    subtitle: "Game Account",
+  },
+  seller: {
+    id: "seller-empire",
+    name: "seller_name",
+    rating: 4.87,
+  },
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
   region: "ASIA PACIFIC",
   level: "Level 10",
   rank: "GOLD III",
   price: 40.2,
   oldPrice: 80.4,
-  discount: 50,
-  sellerName: "seller_name",
-  rating: 4.87,
 });
 
 export const newAccounts: Account[] = Array.from({ length: 10 }, (_, i) =>
@@ -57,15 +62,15 @@ const newGameSlugs: Array<{ slug: string; name: string }> = [
   { slug: "roblox", name: "Roblox" },
 ];
 
-export const popularGames: Game[] = popularGameSlugs.map((g, i) => ({
-  id: `game-${i + 1}`,
+export const popularGames: Game[] = popularGameSlugs.map((g) => ({
+  id: g.slug,
   slug: g.slug,
   name: g.name,
   cover: g.slug,
 }));
 
-export const newGames: Game[] = newGameSlugs.map((g, i) => ({
-  id: `new-game-${i + 1}`,
+export const newGames: Game[] = newGameSlugs.map((g) => ({
+  id: g.slug,
   slug: g.slug,
   name: g.name,
   cover: g.slug,
@@ -120,18 +125,23 @@ export const categories: Category[] = [
 
 export const flashSaleAccount: Account = {
   id: "flash-1",
-  gameSlug: "valorant",
-  game: "Valorant",
-  gameSubtitle: "Game Account",
+  game: {
+    id: "valorant",
+    slug: "valorant",
+    name: "Valorant",
+    subtitle: "Game Account",
+  },
+  seller: {
+    id: "seller-empire",
+    name: "seller_name",
+    rating: 4.87,
+  },
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
   region: "ASIA PACIFIC",
   level: "Level 10",
   rank: "GOLD III",
   price: 40.2,
   oldPrice: 80.4,
-  discount: 50,
-  sellerName: "seller_name",
-  rating: 4.87,
 };
 
 export type SellerProfile = Seller & {
@@ -185,78 +195,7 @@ export function findSellerByStoreId(storeId: number): SellerProfile | null {
   return sellersByStoreId[storeId] ?? null;
 }
 
-export function offersForSeller(storeId: number): Account[] {
-  // Only Empire Gaming has listings in the mock. When Prisma is live:
-  //   return prisma.account.findMany({ where: { seller: { storeId } } })
-  if (storeId !== empireGaming.storeId) return [];
-  return newAccounts;
-}
-
-export const sampleOffer: Offer = {
-  ...sampleAccount("offer-1"),
-  description: `Account information:
-• League and Class are not selected on the account (Level is the very first)
-• Hours are wound up (without playing in matches)
-• Native mail
-• No Steam Guard
-• Completely empty account
-
-List of games on the account:
-Counter-Strike 2 / Dota 2 / Team Fortress 2 / Albion Online / Apex Legends™ / Crossout / EVE Online / THE FINALS / KUBOOM / Paladins® / Path of Exile / The First Descendant / PUBG: BATTLEGROUNDS / Russian Fishing 4 / STALCRAFT: X / Marvel Rivals / World of Tanks / War Thunder / Warframe / Allods Online / Caliber / Destiny 2 / Pixel Gun 3D: PC Edition / Farlight 84 / Lost Light / NARAKA: BLADEPOINT / World of Warships / The Sims™ 4 / Delta Force / Delta Force / Karos / World of Tanks Blitz / Call of Duty®: Warzone™
-
-How to log in to your account?
-• After ordering, you will receive the following account data: Login: Password: Email: Email password`,
-  images: [],
-  seller: sampleSeller,
-  // Surface the first 3 of the seller's reviews on the offer page so the
-  // seller's own /seller/<storeId> page lists the same ones (plus more).
-  reviews: empireGaming.reviews.slice(0, 3),
-  offerEndsLabel: "OFFER ENDS IN 42HRS 32MIN",
-};
-
-export function findOffer(gameSlug: string, offerId: string): Offer | null {
-  // Everything currently routes to the same sample offer, tagged with the
-  // requested slug/id so the UI shows the right values. Swap for a Prisma
-  // query (prisma.account.findUnique) once migrations are run.
-  if (gameSlug !== "valorant") return null;
-  return { ...sampleOffer, id: offerId, gameSlug };
-}
-
-export function similarOffers(gameSlug: string, excludeId: string): Account[] {
-  return newAccounts
-    .filter((account) => account.gameSlug === gameSlug && account.id !== excludeId)
-    .slice(0, 5);
-}
-
-const knownGames: Record<string, string> = {
-  valorant: "Valorant",
-  "cold-war": "Cold War",
-  fortnite: "Fortnite",
-  "cs-go": "CS:GO",
-  "gta-v": "GTA V",
-  minecraft: "Minecraft",
-  roblox: "Roblox",
-  "rocket-league": "Rocket League",
-  "overwatch-2": "Overwatch II",
-  "rainbow-six-siege": "Rainbow Six",
-  "clash-royale": "Clash Royale",
-  osrs: "Old School RuneScape",
-  "call-of-duty": "Call of Duty",
-  "league-of-legends": "League of Legends",
-};
-
-export function findGameBySlug(slug: string): Game | null {
-  const name = knownGames[slug];
-  if (!name) return null;
-  return { id: slug, name, cover: slug };
-}
-
-export function offersForGame(gameSlug: string): Account[] {
-  // Currently all mock accounts are valorant. When real data flows through
-  // Prisma this becomes `prisma.account.findMany({ where: { game: { slug } } })`.
-  if (gameSlug !== "valorant") return [];
-  return newAccounts.filter((account) => account.gameSlug === gameSlug);
-}
+// offers/games lookups moved to src/lib/offers.ts (Supabase-backed).
 
 export type Faq = { question: string; answer: string };
 

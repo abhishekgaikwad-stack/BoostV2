@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SellerTabs } from "@/components/sections/SellerTabs";
-import { offersForSeller } from "@/lib/mock";
+import { offersForSeller } from "@/lib/offers";
 import { resolveSellerProfile } from "@/lib/sellers";
 
 function formatRegistered(iso: string) {
@@ -27,7 +27,7 @@ export default async function SellerPage({
   const seller = await resolveSellerProfile(parsed);
   if (!seller) notFound();
 
-  const offers = offersForSeller(parsed);
+  const offers = await offersForSeller(parsed);
 
   return (
     <div className="flex flex-col gap-8">

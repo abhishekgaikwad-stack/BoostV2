@@ -1,8 +1,12 @@
 import { ArrowRight } from "lucide-react";
 import { SquareProductCard } from "@/components/cards/SquareProductCard";
-import { newGames, popularGames } from "@/lib/mock";
+import { listGames } from "@/lib/offers";
 
-export function PopularGamesCarousel() {
+export async function PopularGamesCarousel() {
+  const games = await listGames(20);
+  if (games.length === 0) return null;
+  const popularGames = games.slice(0, 14);
+  const newGames = games.slice(-6);
   return (
     <section className="grid gap-6 lg:grid-cols-[1fr_auto]">
       <div className="flex flex-col gap-6">

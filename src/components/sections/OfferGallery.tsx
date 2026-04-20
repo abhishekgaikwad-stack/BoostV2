@@ -21,8 +21,8 @@ export function OfferGallery({ offer }: { offer: Offer }) {
       <div className="flex items-center gap-4 self-start rounded-2xl p-4">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-brand-discount">
           <Image
-            src={gameImage(offer.gameSlug)}
-            alt={offer.game}
+            src={gameImage(offer.game.slug)}
+            alt={offer.game.name}
             fill
             sizes="80px"
             className="object-cover"
@@ -30,10 +30,10 @@ export function OfferGallery({ offer }: { offer: Offer }) {
         </div>
         <div className="flex min-w-0 flex-1 flex-col text-left">
           <span className="font-display text-[16px] font-medium leading-5 text-brand-text-primary-light">
-            {offer.game}
+            {offer.game.name}
           </span>
           <span className="font-display text-[12px] font-medium leading-4 text-brand-text-secondary-dark">
-            {offer.gameSubtitle}
+            {offer.game.subtitle}
           </span>
         </div>
       </div>

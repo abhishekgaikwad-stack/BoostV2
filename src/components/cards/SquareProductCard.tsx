@@ -13,10 +13,9 @@ export function SquareProductCard({
   tone?: "light" | "dark";
   className?: string;
 }) {
-  const slug = game.slug ?? game.cover ?? game.id;
   return (
     <Link
-      href={`/games/${slug}`}
+      href={`/games/${game.slug}`}
       className={cn("flex w-20 flex-col items-center gap-2", className)}
     >
       <div
