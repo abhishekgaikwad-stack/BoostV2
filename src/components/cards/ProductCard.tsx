@@ -1,6 +1,7 @@
 "use client";
 
 import { Bookmark, Heart, Star, Zap } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Account } from "@/types";
 import { cn, discountPercent } from "@/lib/utils";
@@ -71,10 +72,19 @@ export function ProductCard({
 
       <div
         className={cn(
-          "relative aspect-[228/132] w-full rounded-2xl",
+          "relative aspect-[228/132] w-full overflow-hidden rounded-2xl",
           isDark ? "bg-brand-bg-elevated" : "bg-brand-bg-pill",
         )}
       >
+        {account.images && account.images[0] ? (
+          <Image
+            src={account.images[0]}
+            alt={account.title}
+            fill
+            sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 100vw"
+            className="object-cover"
+          />
+        ) : null}
         <div className="absolute inset-x-3 top-3 flex items-center justify-between">
           <span className="grid h-6 w-6 place-items-center rounded-lg bg-black">
             <Zap className="h-4 w-4 text-brand-accent" fill="currentColor" />

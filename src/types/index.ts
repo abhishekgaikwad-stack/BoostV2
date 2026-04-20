@@ -22,6 +22,7 @@ export type Account = {
   rank: string;
   price: number;
   oldPrice?: number;
+  images?: string[];
 };
 
 export type Seller = {

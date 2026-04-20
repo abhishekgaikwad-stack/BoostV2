@@ -68,6 +68,7 @@ function toAccount(row: AccountRow): Account {
     rank: row.rank ?? "",
     price: row.price / 100,
     oldPrice: row.old_price != null ? row.old_price / 100 : undefined,
+    images: row.images ?? [],
   };
 }
 
