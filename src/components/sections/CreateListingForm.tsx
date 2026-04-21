@@ -6,6 +6,7 @@ import {
   type CreateListingState,
   createListing,
 } from "@/app/(dashboard)/sell/actions";
+import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { ImageUploader } from "@/components/forms/ImageUploader";
 import type { Game } from "@/types";
 
@@ -67,6 +68,8 @@ export function CreateListingForm({ games }: { games: Game[] }) {
       <Field label="Screenshots (optional)">
         <ImageUploader name="images" />
       </Field>
+
+      <CredentialsFieldset />
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Selling price (€)">

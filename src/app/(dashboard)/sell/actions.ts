@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  credentialsFromFormData,
+  saveCredentials,
+} from "@/lib/credentials";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CreateListingState = {
@@ -79,6 +83,21 @@ export async function createListing(
     .single();
 
   if (error) return { error: error.message };
+
+  // Encrypt-and-save credentials in the same request so the seller doesn't
+  // have to hop to an edit page to finish setting up. No-op when empty.
+  const credentialsResult = await saveCredentials(
+    data.id,
+    user.id,
+    credentialsFromFormData(formData),
+  );
+  if (credentialsResult.error) {
+    // Listing already created; surface the credential error so the seller
+    // knows to retry from the edit page.
+    return {
+      error: `Listing saved, but credentials failed: ${credentialsResult.error}`,
+    };
+  }
 
   const gameSlug = (data.game as unknown as { slug: string }).slug;
   revalidatePath("/");
