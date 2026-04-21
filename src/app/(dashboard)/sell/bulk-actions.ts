@@ -98,9 +98,11 @@ export async function createBulkListings(
     return {
       title: r.title.trim(),
       description: r.description?.trim() ?? "",
-      region: r.region?.trim() ?? "",
-      level: r.level?.trim() ?? "",
-      rank: r.rank?.trim() ?? "",
+      // Region / level / rank are not part of the bulk schema — seller adds
+      // them per-listing via the edit page.
+      region: "",
+      level: "",
+      rank: "",
       price: Math.round(r.priceEur * 100),
       old_price:
         r.oldPriceEur != null ? Math.round(r.oldPriceEur * 100) : null,

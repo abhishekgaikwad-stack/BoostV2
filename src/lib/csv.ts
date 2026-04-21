@@ -4,9 +4,6 @@ export const BULK_HEADERS = [
   "game_slug",
   "title",
   "description",
-  "region",
-  "level",
-  "rank",
   "price_eur",
   "old_price_eur",
   "cred_login",
@@ -21,9 +18,6 @@ export const BULK_MAX_ROWS = 500;
 export type BulkListingRow = {
   title: string;
   description?: string;
-  region?: string;
-  level?: string;
-  rank?: string;
   priceEur: number;
   oldPriceEur?: number;
   credLogin?: string;
@@ -60,9 +54,6 @@ export function buildTemplateCsv(gameSlug: string): string {
           gameSlug,
           "Example — 20M Valorant account (delete this row)",
           "Describe the account: agents, rank, warnings, anything the buyer should know.",
-          "ASIA PACIFIC",
-          "Level 10",
-          "GOLD III",
           "40.20",
           "80.40",
           "",
@@ -147,9 +138,6 @@ export function parseBulkCsv(
         ? {
             title,
             description: get("description") || undefined,
-            region: get("region") || undefined,
-            level: get("level") || undefined,
-            rank: get("rank") || undefined,
             priceEur: priceNum,
             oldPriceEur: oldPriceNum,
             credLogin: get("cred_login") || undefined,
