@@ -60,11 +60,11 @@ export default async function EditListingPage({
   return (
     <div className="flex max-w-[720px] flex-col gap-6">
       <Link
-        href={`/games/${row.game.slug}/${row.id}`}
+        href="/user/currently-selling"
         className="inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border-light bg-white px-4 py-2 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:bg-brand-bg-light"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-        Back to public listing
+        Back to currently selling
       </Link>
 
       <div className="flex flex-col gap-2">
