@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  SellerListingRow,
-  type SellerListingRowData,
-} from "@/components/cards/SellerListingRow";
+import type { SellerListingRowData } from "@/components/cards/SellerListingRow";
+import { CurrentlySellingList } from "@/components/sections/CurrentlySellingList";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ListingRow = {
@@ -91,13 +89,7 @@ export default async function CurrentlySellingPage() {
       </div>
 
       {listings.length > 0 ? (
-        <ul className="flex flex-col gap-3">
-          {listings.map((listing) => (
-            <li key={listing.id}>
-              <SellerListingRow listing={listing} />
-            </li>
-          ))}
-        </ul>
+        <CurrentlySellingList listings={listings} />
       ) : (
         <div className="rounded-3xl border border-brand-border-light bg-brand-bg-light p-10 text-center font-display text-[14px] font-medium text-brand-text-secondary-light">
           Nothing to manage yet. Click{" "}
