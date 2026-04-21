@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ListingActions } from "@/components/sections/ListingActions";
+import { gameImage } from "@/lib/images";
 import { cn, discountPercent } from "@/lib/utils";
 
 export type SellerListingRowData = {
@@ -25,7 +26,6 @@ export function SellerListingRow({
 }: {
   listing: SellerListingRowData;
 }) {
-  const hero = listing.images[0];
   const priceEuros = listing.price / 100;
   const oldPriceEuros = listing.oldPrice != null ? listing.oldPrice / 100 : null;
   const discount = discountPercent(priceEuros, oldPriceEuros ?? undefined);
@@ -38,15 +38,13 @@ export function SellerListingRow({
   return (
     <article className="flex items-center gap-4 rounded-2xl border border-brand-border-light bg-white p-3 transition hover:border-brand-text-secondary-light">
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-brand-bg-pill">
-        {hero ? (
-          <Image
-            src={hero}
-            alt={listing.title}
-            fill
-            sizes="80px"
-            className="object-cover"
-          />
-        ) : null}
+        <Image
+          src={gameImage(listing.game.slug)}
+          alt={listing.game.name}
+          fill
+          sizes="80px"
+          className="object-cover"
+        />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
