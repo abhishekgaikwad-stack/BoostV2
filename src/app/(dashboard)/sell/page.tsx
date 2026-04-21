@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CreateListingForm } from "@/components/sections/CreateListingForm";
+import { SellTabs } from "@/components/sections/SellTabs";
 import { listGames } from "@/lib/offers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -46,11 +46,11 @@ export default async function SellPage() {
           List a new account
         </h1>
         <p className="font-display text-[14px] leading-5 text-brand-text-secondary-light">
-          Fill in the essentials. You can add region, level, rank, and images
-          from the edit page once the listing is up.
+          Fill in the essentials manually, or upload a CSV to list many at
+          once.
         </p>
       </div>
-      <CreateListingForm games={games} />
+      <SellTabs games={games} />
     </div>
   );
 }
