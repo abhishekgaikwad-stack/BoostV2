@@ -1,6 +1,6 @@
-import { Pencil } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { ListingActions } from "@/components/sections/ListingActions";
 import { cn, discountPercent } from "@/lib/utils";
 
 export type SellerListingRowData = {
@@ -86,13 +86,7 @@ export function SellerListingRow({
         </div>
       </div>
 
-      <Link
-        href={`/user/currently-selling/${listing.id}`}
-        className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-black px-4 font-display text-[13px] font-medium text-white transition hover:bg-brand-bg-surface"
-      >
-        <Pencil className="h-4 w-4" strokeWidth={1.5} />
-        Edit
-      </Link>
+      <ListingActions offerId={listing.id} title={listing.title} />
     </article>
   );
 }
