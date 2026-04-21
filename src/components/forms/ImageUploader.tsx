@@ -11,6 +11,8 @@ type Props = {
   maxFiles?: number;
   maxSize?: number; // bytes
   acceptedTypes?: string[];
+  /** Pre-existing public URLs to render as already uploaded. */
+  initialUrls?: string[];
   className?: string;
 };
 
@@ -24,6 +26,7 @@ export function ImageUploader({
   maxFiles = DEFAULT_MAX_FILES,
   maxSize = DEFAULT_MAX_SIZE,
   acceptedTypes = DEFAULT_ACCEPT,
+  initialUrls,
   className,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -34,6 +37,7 @@ export function ImageUploader({
     maxFiles,
     maxSize,
     acceptedTypes,
+    initialUrls,
   });
 
   function openPicker() {
@@ -162,7 +166,7 @@ export function ImageUploader({
 
               <div className="flex items-center justify-between gap-2 px-3 py-2">
                 <span className="truncate font-display text-[11px] font-medium text-brand-text-secondary-light">
-                  {item.file.name}
+                  {item.file?.name ?? "Uploaded"}
                 </span>
                 <div className="flex items-center gap-1">
                   {index > 0 && item.status === "done" ? (

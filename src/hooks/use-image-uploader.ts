@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type UploadItem = {
   id: string;
-  file: File;
+  /** Undefined for items that were already uploaded before the component mounted. */
+  file?: File;
   previewUrl: string;
   status: "queued" | "uploading" | "done" | "error";
   progress: number; // 0..100
@@ -17,6 +18,8 @@ type Options = {
   maxFiles: number;
   maxSize: number; // bytes
   acceptedTypes: string[];
+  /** Pre-existing public URLs to hydrate the queue with (status: "done"). */
+  initialUrls?: string[];
 };
 
 type PresignResponse = {
@@ -42,8 +45,16 @@ export type ImageUploader = {
  * Preview blob URLs are revoked on remove / unmount so they don't leak.
  */
 export function useImageUploader(options: Options): ImageUploader {
-  const { endpoint, maxFiles, maxSize, acceptedTypes } = options;
-  const [items, setItems] = useState<UploadItem[]>([]);
+  const { endpoint, maxFiles, maxSize, acceptedTypes, initialUrls } = options;
+  const [items, setItems] = useState<UploadItem[]>(() =>
+    (initialUrls ?? []).slice(0, maxFiles).map((url, index) => ({
+      id: `initial-${index}-${url}`,
+      previewUrl: url,
+      status: "done",
+      progress: 100,
+      publicUrl: url,
+    })),
+  );
   // Track active XHRs so we can abort on unmount or remove.
   const xhrs = useRef(new Map<string, XMLHttpRequest>());
 
@@ -80,6 +91,9 @@ export function useImageUploader(options: Options): ImageUploader {
 
   const upload = useCallback(
     (item: UploadItem) => {
+      const file = item.file;
+      if (!file) return; // pre-existing items don't need re-uploading
+
       setItems((prev) =>
         prev.map((p) =>
           p.id === item.id
@@ -94,8 +108,8 @@ export function useImageUploader(options: Options): ImageUploader {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
-              contentType: item.file.type,
-              size: item.file.size,
+              contentType: file.type,
+              size: file.size,
             }),
           });
           if (!presignRes.ok) {
@@ -111,7 +125,7 @@ export function useImageUploader(options: Options): ImageUploader {
             const xhr = new XMLHttpRequest();
             xhrs.current.set(item.id, xhr);
             xhr.open("PUT", uploadUrl);
-            xhr.setRequestHeader("content-type", item.file.type);
+            xhr.setRequestHeader("content-type", file.type);
             xhr.upload.onprogress = (event) => {
               if (!event.lengthComputable) return;
               const pct = Math.round((event.loaded / event.total) * 100);
@@ -134,7 +148,7 @@ export function useImageUploader(options: Options): ImageUploader {
               xhrs.current.delete(item.id);
               reject(new Error("Upload cancelled."));
             };
-            xhr.send(item.file);
+            xhr.send(file);
           });
 
           setItems((prev) =>

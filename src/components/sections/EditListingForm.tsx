@@ -6,6 +6,7 @@ import {
   updateListing,
 } from "@/app/(dashboard)/user/currently-selling/[offerId]/actions";
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
+import { ImageUploader } from "@/components/forms/ImageUploader";
 import type { AccountCredentials } from "@/lib/credentials";
 
 const initialState: UpdateListingState = {};
@@ -16,6 +17,7 @@ export type EditableListing = {
   description: string | null;
   price: number; // cents
   oldPrice: number | null; // cents
+  images: string[];
   game: { slug: string; name: string };
 };
 
@@ -64,6 +66,10 @@ export function EditListingForm({
           defaultValue={listing.description ?? ""}
           className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light focus:outline-none"
         />
+      </Field>
+
+      <Field label="Screenshots">
+        <ImageUploader name="images" initialUrls={listing.images} />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">

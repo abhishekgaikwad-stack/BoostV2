@@ -62,6 +62,12 @@ export async function updateListing(
     }
   }
 
+  const images = formData
+    .getAll("images")
+    .map((value) => value.toString())
+    .filter((url) => typeof url === "string" && url.startsWith("https://"))
+    .slice(0, 10);
+
   const { error: updateError } = await supabase
     .from("accounts")
     .update({
@@ -69,6 +75,7 @@ export async function updateListing(
       description,
       price,
       old_price: oldPrice,
+      images,
     })
     .eq("id", offerId);
   if (updateError) return { error: updateError.message };

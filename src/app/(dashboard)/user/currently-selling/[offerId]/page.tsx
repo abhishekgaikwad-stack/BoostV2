@@ -14,6 +14,7 @@ type ListingRow = {
   description: string | null;
   price: number;
   old_price: number | null;
+  images: string[];
   seller_id: string;
   game: { slug: string; name: string };
 };
@@ -34,7 +35,7 @@ export default async function EditListingPage({
   const { data, error } = await supabase
     .from("accounts")
     .select(
-      "id, title, description, price, old_price, seller_id, game:games(slug, name)",
+      "id, title, description, price, old_price, images, seller_id, game:games(slug, name)",
     )
     .eq("id", offerId)
     .maybeSingle();
@@ -54,6 +55,7 @@ export default async function EditListingPage({
     description: row.description,
     price: row.price,
     oldPrice: row.old_price,
+    images: row.images ?? [],
     game: row.game,
   };
 
