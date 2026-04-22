@@ -78,11 +78,12 @@ export function EditListingForm({
           <DecimalInput
             name="price"
             required
+            max={1000}
             defaultValue={(listing.price / 100).toFixed(2)}
             className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
           />
         </Field>
-        <Field label="MRP / old price (€, max 1000)">
+        <Field label="MRP / old price (€)">
           <DecimalInput
             name="oldPrice"
             defaultValue={

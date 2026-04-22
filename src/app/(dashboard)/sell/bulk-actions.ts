@@ -78,12 +78,6 @@ export async function createBulkListings(
       if (!Number.isFinite(r.oldPriceEur) || r.oldPriceEur < 0) {
         return { ok: false, error: `Row ${i + 2}: old price invalid.` };
       }
-      if (r.oldPriceEur > PRICE_MAX_EUR) {
-        return {
-          ok: false,
-          error: `Row ${i + 2}: old price cannot exceed €${PRICE_MAX_EUR}.`,
-        };
-      }
       if (r.oldPriceEur < r.priceEur) {
         return {
           ok: false,

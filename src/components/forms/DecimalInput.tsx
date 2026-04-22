@@ -4,11 +4,13 @@ import { forwardRef, useState } from "react";
 
 type Props = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  "type" | "value" | "defaultValue" | "onChange"
+  "type" | "value" | "defaultValue" | "onChange" | "max"
 > & {
   defaultValue?: string;
   /** Maximum digits after the decimal point. Defaults to 2. */
   decimals?: number;
+  /** If set, keystrokes that would produce a value above `max` are rejected. */
+  max?: number;
 };
 
 /**
@@ -22,7 +24,10 @@ type Props = Omit<
  * on browser-level validation errors at submit time.
  */
 export const DecimalInput = forwardRef<HTMLInputElement, Props>(
-  function DecimalInput({ defaultValue = "", decimals = 2, ...rest }, ref) {
+  function DecimalInput(
+    { defaultValue = "", decimals = 2, max, ...rest },
+    ref,
+  ) {
     const [value, setValue] = useState(defaultValue);
     // Matches optional leading digits, optional dot, and up to `decimals`
     // digits after. Also allows an in-progress "12." (trailing dot) so the
@@ -38,9 +43,12 @@ export const DecimalInput = forwardRef<HTMLInputElement, Props>(
         value={value}
         onChange={(event) => {
           const raw = event.target.value;
-          if (raw === "" || pattern.test(raw)) {
-            setValue(raw);
+          if (raw !== "" && !pattern.test(raw)) return;
+          if (max != null && raw !== "" && raw !== ".") {
+            const num = Number.parseFloat(raw);
+            if (Number.isFinite(num) && num > max) return;
           }
+          setValue(raw);
         }}
         {...rest}
       />

@@ -61,9 +61,6 @@ export async function updateListing(
       return { error: "MRP must be a positive number." };
     }
     oldPrice = Math.round(oldFloat * 100);
-    if (oldPrice > PRICE_CAP_CENTS) {
-      return { error: `MRP cannot exceed €${PRICE_MAX_EUR}.` };
-    }
     if (oldPrice < price) {
       return { error: "MRP must be greater than or equal to the selling price." };
     }
