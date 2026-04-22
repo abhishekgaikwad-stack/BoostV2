@@ -6,6 +6,7 @@ import {
   updateListing,
 } from "@/app/(dashboard)/user/currently-selling/[offerId]/actions";
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
+import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
 import type { AccountCredentials } from "@/lib/credentials";
 
@@ -74,24 +75,16 @@ export function EditListingForm({
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Selling price (€, max 1000)">
-          <input
+          <DecimalInput
             name="price"
-            type="number"
-            min="0"
-            max="1000"
-            step="0.01"
             required
             defaultValue={(listing.price / 100).toFixed(2)}
             className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
           />
         </Field>
         <Field label="MRP / old price (€, max 1000)">
-          <input
+          <DecimalInput
             name="oldPrice"
-            type="number"
-            min="0"
-            max="1000"
-            step="0.01"
             defaultValue={
               listing.oldPrice != null ? (listing.oldPrice / 100).toFixed(2) : ""
             }
