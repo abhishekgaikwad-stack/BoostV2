@@ -72,22 +72,24 @@ export function CreateListingForm({ games }: { games: Game[] }) {
       <CredentialsFieldset />
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Selling price (€)">
+        <Field label="Selling price (€, max 1000)">
           <input
             name="price"
             type="number"
             min="0"
+            max="1000"
             step="0.01"
             required
             placeholder="40.20"
             className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
           />
         </Field>
-        <Field label="MRP / old price (€)">
+        <Field label="MRP / old price (€, max 1000)">
           <input
             name="oldPrice"
             type="number"
             min="0"
+            max="1000"
             step="0.01"
             placeholder="80.40"
             className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"

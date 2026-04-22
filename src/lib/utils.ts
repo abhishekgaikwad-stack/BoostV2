@@ -10,6 +10,10 @@ export function discountPercent(price: number, oldPrice?: number): number | null
   return Math.round((1 - price / oldPrice) * 100);
 }
 
+/** Listings are capped at €1000 with at most 2 decimal places. */
+export const PRICE_MAX_EUR = 1000;
+export const PRICE_CAP_CENTS = PRICE_MAX_EUR * 100;
+
 /**
  * Format an ISO timestamp into a countdown label like
  * `OFFER ENDS IN 42HRS 32MIN`. Returns null when the input is missing or

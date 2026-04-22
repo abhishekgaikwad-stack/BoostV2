@@ -6,6 +6,7 @@ import {
   saveCredentials,
 } from "@/lib/credentials";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PRICE_CAP_CENTS, PRICE_MAX_EUR } from "@/lib/utils";
 
 export type UpdateListingState = {
   error?: string;
@@ -49,6 +50,9 @@ export async function updateListing(
     return { error: "Selling price must be a positive number." };
   }
   const price = Math.round(priceFloat * 100);
+  if (price > PRICE_CAP_CENTS) {
+    return { error: `Selling price cannot exceed €${PRICE_MAX_EUR}.` };
+  }
 
   let oldPrice: number | null = null;
   if (oldPriceRaw && oldPriceRaw.trim() !== "") {
@@ -57,6 +61,9 @@ export async function updateListing(
       return { error: "MRP must be a positive number." };
     }
     oldPrice = Math.round(oldFloat * 100);
+    if (oldPrice > PRICE_CAP_CENTS) {
+      return { error: `MRP cannot exceed €${PRICE_MAX_EUR}.` };
+    }
     if (oldPrice < price) {
       return { error: "MRP must be greater than or equal to the selling price." };
     }

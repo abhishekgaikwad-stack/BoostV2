@@ -5,6 +5,7 @@ import type { AccountCredentials } from "@/lib/credentials";
 import { BULK_MAX_ROWS, type BulkListingRow } from "@/lib/csv";
 import { encrypt } from "@/lib/encryption";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PRICE_MAX_EUR } from "@/lib/utils";
 
 export type BulkResult =
   | { ok: true; createdIds: string[] }
@@ -67,9 +68,21 @@ export async function createBulkListings(
     if (!Number.isFinite(r.priceEur) || r.priceEur < 0) {
       return { ok: false, error: `Row ${i + 2}: price must be positive.` };
     }
+    if (r.priceEur > PRICE_MAX_EUR) {
+      return {
+        ok: false,
+        error: `Row ${i + 2}: price cannot exceed €${PRICE_MAX_EUR}.`,
+      };
+    }
     if (r.oldPriceEur != null) {
       if (!Number.isFinite(r.oldPriceEur) || r.oldPriceEur < 0) {
         return { ok: false, error: `Row ${i + 2}: old price invalid.` };
+      }
+      if (r.oldPriceEur > PRICE_MAX_EUR) {
+        return {
+          ok: false,
+          error: `Row ${i + 2}: old price cannot exceed €${PRICE_MAX_EUR}.`,
+        };
       }
       if (r.oldPriceEur < r.priceEur) {
         return {

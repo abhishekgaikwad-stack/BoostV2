@@ -1,4 +1,5 @@
 import Papa from "papaparse";
+import { PRICE_MAX_EUR } from "@/lib/utils";
 
 export const BULK_HEADERS = [
   "game_slug",
@@ -120,6 +121,8 @@ export function parseBulkCsv(
     const priceNum = Number.parseFloat(priceRaw);
     if (!priceRaw || !Number.isFinite(priceNum) || priceNum < 0) {
       errors.push("price_eur must be a positive number");
+    } else if (priceNum > PRICE_MAX_EUR) {
+      errors.push(`price_eur must be ≤ ${PRICE_MAX_EUR}`);
     }
 
     const oldPriceRaw = get("old_price_eur");
@@ -128,6 +131,8 @@ export function parseBulkCsv(
       oldPriceNum = Number.parseFloat(oldPriceRaw);
       if (!Number.isFinite(oldPriceNum) || oldPriceNum < 0) {
         errors.push("old_price_eur must be a positive number");
+      } else if (oldPriceNum > PRICE_MAX_EUR) {
+        errors.push(`old_price_eur must be ≤ ${PRICE_MAX_EUR}`);
       } else if (Number.isFinite(priceNum) && oldPriceNum < priceNum) {
         errors.push("old_price_eur must be >= price_eur");
       }
