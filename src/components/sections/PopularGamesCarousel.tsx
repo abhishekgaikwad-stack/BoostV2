@@ -31,7 +31,7 @@ export async function PopularGamesCarousel() {
         <h3 className="mb-6 font-display text-[16px] font-medium leading-5 text-brand-text-primary-dark">
           New Games
         </h3>
-        <div className="grid grid-cols-3 gap-x-[calc(var(--spacing)*12)] gap-y-6">
+        <div className="grid grid-cols-3 justify-items-center gap-x-[calc(var(--spacing)*12)] gap-y-6">
           {newGames.map((game) => (
             <SquareProductCard key={game.id} game={game} tone="dark" />
           ))}
