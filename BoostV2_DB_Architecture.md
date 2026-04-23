@@ -108,10 +108,13 @@ historical ("accounts" the product, not a user account).
 | `offer_ends_at`   | `timestamptz`             | Optional countdown deadline                                        |
 | `created_at`      | `timestamptz`             | Default `now()`                                                    |
 
-Indexing (recommended — mirrored in the old Prisma schema):
-- `(game_id, status)`
-- `(seller_id)`
-- `(status, created_at)`
+Indexing (live — see `db/migrations/0003_composite_listing_indexes.sql`):
+- `idx_accounts_game_status_created`   — `(game_id, status, created_at DESC, id DESC)` — game-detail feed
+- `idx_accounts_seller_status_created` — `(seller_id, status, created_at DESC, id DESC)` — seller-page feed
+- `idx_accounts_status_created`        — `(status, created_at DESC, id DESC)` — home / recent feed
+
+All three include `id DESC` as a stable tie-breaker for cursor pagination
+(`src/lib/offers.ts::ListingCursor`).
 
 Access: every file in `src/app/(dashboard)/sell/...`,
 `src/app/(dashboard)/user/currently-selling/...`, `src/lib/offers.ts`.

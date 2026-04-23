@@ -16,7 +16,7 @@ export default async function GameListingPage({
   const game = await findGameBySlug(slug);
   if (!game) notFound();
 
-  const offers = await offersForGame(slug);
+  const { items: offers } = await offersForGame(slug);
 
   return (
     <div className="flex flex-col gap-8">

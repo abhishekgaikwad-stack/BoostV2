@@ -2,7 +2,7 @@ import { ProductCard } from "@/components/cards/ProductCard";
 import { recentOffers } from "@/lib/offers";
 
 export async function NewAccountsSection() {
-  const accounts = await recentOffers(10);
+  const { items: accounts } = await recentOffers({ limit: 10 });
   if (accounts.length === 0) return null;
 
   return (

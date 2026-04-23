@@ -66,6 +66,78 @@ function toAccount(row: AccountRow): Account {
   };
 }
 
+// ---------- Cursor pagination ----------
+
+/**
+ * Opaque cursor encoding the last row's `(created_at, id)` tuple. Callers
+ * treat it as a black-box string: pass it back verbatim as the next call's
+ * `cursor` to get the following page.
+ */
+export type ListingCursor = string;
+
+export type ListingPage = {
+  items: Account[];
+  nextCursor: ListingCursor | null;
+};
+
+type CursorPayload = { c: string; i: string };
+
+function encodeCursor(payload: CursorPayload): ListingCursor {
+  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+}
+
+function decodeCursor(cursor: ListingCursor): CursorPayload | null {
+  try {
+    const obj = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8"),
+    ) as Partial<CursorPayload>;
+    if (typeof obj.c === "string" && typeof obj.i === "string") {
+      return { c: obj.c, i: obj.i };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Apply a keyset (`created_at DESC, id DESC`) cursor to a query builder.
+ * Requires the caller to also append matching `.order(...)` clauses.
+ */
+function withCursor<Q extends { or: (filter: string) => Q }>(
+  query: Q,
+  cursor: ListingCursor | null | undefined,
+): Q {
+  if (!cursor) return query;
+  const payload = decodeCursor(cursor);
+  if (!payload) return query;
+  return query.or(
+    `created_at.lt.${payload.c},and(created_at.eq.${payload.c},id.lt.${payload.i})`,
+  );
+}
+
+/**
+ * Fetches `limit + 1` rows so we can detect whether a next page exists, then
+ * trims back to `limit` and builds the next cursor from the last kept row.
+ */
+function buildPage(rows: AccountRow[], limit: number): ListingPage {
+  const hasMore = rows.length > limit;
+  const kept = hasMore ? rows.slice(0, limit) : rows;
+  const last = kept[kept.length - 1];
+  return {
+    items: kept.map(toAccount),
+    nextCursor:
+      hasMore && last ? encodeCursor({ c: last.created_at, i: last.id }) : null,
+  };
+}
+
+export type ListingQuery = {
+  limit?: number;
+  cursor?: ListingCursor | null;
+};
+
+const DEFAULT_LISTING_LIMIT = 24;
+
 // ---------- Queries ----------
 
 export async function findGameBySlug(slug: string): Promise<Game | null> {
@@ -90,32 +162,55 @@ export async function listGames(limit = 14): Promise<Game[]> {
   return data.map(toGame);
 }
 
-export async function offersForGame(gameSlug: string): Promise<Account[]> {
+export async function offersForGame(
+  gameSlug: string,
+  { limit = DEFAULT_LISTING_LIMIT, cursor = null }: ListingQuery = {},
+): Promise<ListingPage> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("accounts")
-    .select(ACCOUNT_SELECT)
-    .eq("status", "AVAILABLE")
-    .eq("game.slug", gameSlug)
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
-  return (data as unknown as AccountRow[])
-    .filter((row) => row.game?.slug === gameSlug)
-    .map(toAccount);
+  const query = withCursor(
+    supabase
+      .from("accounts")
+      .select(ACCOUNT_SELECT)
+      .eq("status", "AVAILABLE")
+      .eq("game.slug", gameSlug)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit + 1),
+    cursor,
+  );
+  const { data, error } = await query;
+  if (error || !data) return { items: [], nextCursor: null };
+  // Defensive post-filter — the `game.slug` filter already runs SQL-side, but
+  // PostgREST relation filtering has edge cases. Filtered-out rows can mask a
+  // `hasMore` signal at the page boundary; acceptable given how rare this is.
+  const rows = (data as unknown as AccountRow[]).filter(
+    (row) => row.game?.slug === gameSlug,
+  );
+  return buildPage(rows, limit);
 }
 
-export async function offersForSeller(storeId: number): Promise<Account[]> {
+export async function offersForSeller(
+  storeId: number,
+  { limit = DEFAULT_LISTING_LIMIT, cursor = null }: ListingQuery = {},
+): Promise<ListingPage> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("accounts")
-    .select(ACCOUNT_SELECT)
-    .eq("seller.store_id", storeId)
-    .eq("status", "AVAILABLE")
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
-  return (data as unknown as AccountRow[])
-    .filter((row) => row.seller?.store_id === storeId)
-    .map(toAccount);
+  const query = withCursor(
+    supabase
+      .from("accounts")
+      .select(ACCOUNT_SELECT)
+      .eq("seller.store_id", storeId)
+      .eq("status", "AVAILABLE")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit + 1),
+    cursor,
+  );
+  const { data, error } = await query;
+  if (error || !data) return { items: [], nextCursor: null };
+  const rows = (data as unknown as AccountRow[]).filter(
+    (row) => row.seller?.store_id === storeId,
+  );
+  return buildPage(rows, limit);
 }
 
 export async function similarOffers(
@@ -123,20 +218,28 @@ export async function similarOffers(
   excludeId: string,
   take = 5,
 ): Promise<Account[]> {
-  const rows = await offersForGame(gameSlug);
-  return rows.filter((row) => row.id !== excludeId).slice(0, take);
+  // +1 so we still have `take` items even if the excluded row sits in the page.
+  const { items } = await offersForGame(gameSlug, { limit: take + 1 });
+  return items.filter((row) => row.id !== excludeId).slice(0, take);
 }
 
-export async function recentOffers(limit = 10): Promise<Account[]> {
+export async function recentOffers(
+  { limit = 10, cursor = null }: ListingQuery = {},
+): Promise<ListingPage> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("accounts")
-    .select(ACCOUNT_SELECT)
-    .eq("status", "AVAILABLE")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error || !data) return [];
-  return (data as unknown as AccountRow[]).map(toAccount);
+  const query = withCursor(
+    supabase
+      .from("accounts")
+      .select(ACCOUNT_SELECT)
+      .eq("status", "AVAILABLE")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit + 1),
+    cursor,
+  );
+  const { data, error } = await query;
+  if (error || !data) return { items: [], nextCursor: null };
+  return buildPage(data as unknown as AccountRow[], limit);
 }
 
 export async function firstFlashOffer(): Promise<Account | null> {

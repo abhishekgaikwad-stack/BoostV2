@@ -27,7 +27,7 @@ export default async function SellerPage({
   const seller = await resolveSellerProfile(parsed);
   if (!seller) notFound();
 
-  const offers = await offersForSeller(parsed);
+  const { items: offers } = await offersForSeller(parsed);
 
   return (
     <div className="flex flex-col gap-8">
