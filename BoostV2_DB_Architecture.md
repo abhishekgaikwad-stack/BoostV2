@@ -1,8 +1,14 @@
 # Boost V2 — Database Architecture
 
-Source of truth: the live **Supabase Postgres** database. Schema work is done
-in the Supabase SQL editor (there is no SQL migration folder in the repo yet),
-and read/write at runtime goes through the Supabase JS client.
+Source of truth: the live **Supabase Postgres** database. Schema changes are
+written as SQL files in `db/migrations/` (see that folder's README for the
+workflow) and applied by hand via the Supabase SQL editor. Runtime reads and
+writes go through the Supabase JS client.
+
+The `db/migrations/0001_baseline.sql` file is a **reconstructed** baseline —
+it was written from application code, not dumped from Postgres. Before
+treating it as authoritative, run the introspection queries in
+`db/migrations/README.md` against the live DB and reconcile any drift.
 
 Images are stored in **S3** (direct presigned uploads), not Supabase Storage.
 
@@ -296,9 +302,10 @@ re-encrypt with new). No helper exists for that yet.
   is not yet wired; currently only the seller can read their own row.
 - **Admin role** — no `role` column on `profiles` yet; admin tooling is
   out-of-band.
-- **Migrations** — there is no SQL migration folder in the repo. Schema
-  changes are applied directly in the Supabase SQL editor. Consider moving
-  to Supabase migrations so the schema is reviewable in PRs.
+- **Migrations** — `db/migrations/` is a plain SQL folder applied by hand.
+  Works for solo dev but drifts easily; if the team grows or you want a
+  local dev DB, graduate to the Supabase CLI (`supabase init` + `supabase
+  db push`).
 
 ---
 

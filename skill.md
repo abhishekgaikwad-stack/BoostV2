@@ -102,7 +102,7 @@ src/
     s3.ts                   S3 client + presign + delete
     supabase/               server + browser clients
     utils.ts                cn, PRICE_MAX_EUR, PRICE_CAP_CENTS, helpers
-prisma/                     schema + migrations
+db/migrations/              hand-applied SQL migrations (see README)
 ```
 
 ## 5. Key constants & decisions
@@ -116,6 +116,11 @@ prisma/                     schema + migrations
 | Store ID start     | `100`     | Postgres sequence + trigger on `profiles` |
 
 ## 6. Supabase / DB notes
+
+Schema is documented in `BoostV2_DB_Architecture.md`. SQL changes go in
+`db/migrations/NNNN_name.sql` (see `db/migrations/README.md`) and are
+applied by hand in the Supabase SQL editor.
+
 
 - `public.accounts` = listings. Key columns: `id`, `seller_id`, `game_id`,
   `title`, `description`, `price` (cents), `old_price` (cents nullable),
