@@ -1,0 +1,316 @@
+# Boost V2 — Database Architecture
+
+Source of truth: the live **Supabase Postgres** database. The `prisma/schema.prisma`
+in this repo is historical/aspirational and **does not match the live schema** —
+do not edit it expecting migrations to run. All schema work is done via the
+Supabase SQL editor (or Supabase migrations), and read/write at runtime uses the
+Supabase JS client.
+
+Images are stored in **S3** (direct presigned uploads), not Supabase Storage.
+
+---
+
+## 1. High-level
+
+```
+auth.users (Supabase-managed)
+    │ 1:1
+    ▼
+public.profiles ──┐
+    │             │ (seller)
+    │             ▼
+    │        public.accounts  ─── public.games
+    │             │ 1:1
+    │             ▼
+    │        public.credentials   (AES-256-GCM ciphertext)
+    │
+    │ (reviewer) ▼
+    └──── public.offer_reviews ─── public.accounts
+```
+
+Money is stored as **integer cents**. Convert at the boundary
+(`Math.round(eur * 100)` in, `cents / 100` out). Cap for selling `price` is
+€1000 (100_000 cents); MRP / `old_price` is uncapped but must be `>= price`.
+
+---
+
+## 2. Tables
+
+### `auth.users` (Supabase-managed)
+
+Standard Supabase auth table — we never insert into this directly. We reference
+it by `id` (UUID) in `profiles.id`.
+
+Columns we rely on: `id`, `email`. RLS reads use `auth.uid()` to join against
+our own tables.
+
+---
+
+### `public.profiles`
+
+One row per auth user. Created by trigger on `auth.users` insert (signup).
+
+| Column        | Type        | Notes                                             |
+|---------------|-------------|---------------------------------------------------|
+| `id`          | `uuid` PK   | FK → `auth.users.id`                              |
+| `name`        | `text`      | Display name                                      |
+| `avatar_url`  | `text`      | Public S3 URL (https://…)                         |
+| `is_seller`   | `boolean`   | Toggle flipped from `/profile` page               |
+| `store_id`    | `int`       | Unique per seller. Auto-assigned on flip via sequence starting at 100 |
+| `created_at`  | `timestamptz` | Default `now()`                                 |
+
+Access patterns:
+- `src/app/(dashboard)/profile/page.tsx` — read self
+- `src/app/api/profile/avatar/route.ts` — update `avatar_url`
+- `src/app/api/profile/account-type/route.ts` — toggle `is_seller`
+- `src/lib/sellers.ts` — look up by `store_id` for seller pages
+- `src/lib/offers.ts` — joined into `accounts` queries as `seller`
+
+---
+
+### `public.games`
+
+Static catalog of games buyers can browse. Seeded manually.
+
+| Column       | Type     | Notes                         |
+|--------------|----------|-------------------------------|
+| `id`         | `uuid` PK | Default `gen_random_uuid()` |
+| `slug`       | `text`   | Unique — used in all URLs     |
+| `name`       | `text`   | Display name                  |
+| `subtitle`   | `text`   | Short tagline (nullable)      |
+| `cover`      | `text`   | Image key or fallback slug    |
+
+Access: `src/lib/offers.ts::listGames`, `findGameBySlug`, and inside server
+actions to re-validate that a submitted `game_id` actually exists.
+
+---
+
+### `public.accounts` — the listings table
+
+This is the core marketplace table. One row per game-account listing. Name is
+historical ("accounts" the product, not a user account).
+
+| Column            | Type                     | Notes                                                              |
+|-------------------|--------------------------|--------------------------------------------------------------------|
+| `id`              | `uuid` / `cuid` PK        | Generated server-side                                              |
+| `game_id`         | FK → `games.id`           | Required                                                           |
+| `seller_id`       | FK → `auth.users.id` (uuid) | Required. Ownership check enforced by RLS **and** by server action before update/delete |
+| `title`           | `text`                    | Required                                                           |
+| `description`     | `text`                    | Nullable                                                           |
+| `region`          | `text`                    | Nullable, free-form                                                |
+| `level`           | `text`                    | Nullable, free-form                                                |
+| `rank`            | `text`                    | Nullable, free-form                                                |
+| `price`           | `int`                     | **Cents**. `0 < price ≤ 100_000` (€1000 cap).                     |
+| `old_price`       | `int`                     | **Cents**, nullable. When set, must be `>= price`. No upper cap.  |
+| `images`          | `text[]`                  | Array of public S3 URLs. Server filters to `https://` prefix and slices to 10. |
+| `status`          | enum-as-text              | `AVAILABLE` \| `RESERVED` \| `SOLD`. Defaults to `AVAILABLE`.       |
+| `offer_ends_at`   | `timestamptz`             | Optional countdown deadline                                        |
+| `created_at`      | `timestamptz`             | Default `now()`                                                    |
+
+Indexing (recommended — mirrored in the old Prisma schema):
+- `(game_id, status)`
+- `(seller_id)`
+- `(status, created_at)`
+
+Access: every file in `src/app/(dashboard)/sell/...`,
+`src/app/(dashboard)/user/currently-selling/...`, `src/lib/offers.ts`.
+
+---
+
+### `public.credentials`
+
+One row per listing. Holds the AES-256-GCM **ciphertext** of the seller's
+account credentials. Plaintext never touches the DB.
+
+| Column            | Type        | Notes                                            |
+|-------------------|-------------|--------------------------------------------------|
+| `id`              | PK          | Generated                                        |
+| `account_id`      | FK → `accounts.id` | **Unique** (1:1 with listing)             |
+| `seller_id`       | FK → `auth.users.id` (uuid) | Used in RLS policy               |
+| `encrypted_data`  | `text`      | JSON ciphertext produced by `src/lib/encryption.ts::encrypt` |
+| `created_at`      | `timestamptz` | Default `now()`                                |
+| `updated_at`      | `timestamptz` | Default `now()`, updated on upsert            |
+
+Decrypted payload shape (`AccountCredentials` in `src/lib/credentials.ts`):
+```ts
+{ login?: string; password?: string; email?: string; emailPassword?: string; notes?: string }
+```
+
+On delete, the row should cascade with the listing (either via FK `onDelete:
+Cascade` or by explicit cleanup in the delete action).
+
+Access: `src/lib/credentials.ts` (read, save, delete helpers). **Never** log
+or return `encrypted_data` to the browser.
+
+---
+
+### `public.offer_reviews`
+
+Buyer reviews on a specific listing. Currently empty but wired up in read
+queries.
+
+| Column         | Type        | Notes                                              |
+|----------------|-------------|----------------------------------------------------|
+| `id`           | PK          | Generated                                          |
+| `offer_id`     | FK → `accounts.id` | Required                                    |
+| `reviewer_id`  | FK → `auth.users.id` (uuid) | Named FK `offer_reviews_reviewer_id_fkey` (explicit join used in code) |
+| `rating`       | `int`       | 1–5                                                |
+| `body`         | `text`      | Nullable                                           |
+| `created_at`   | `timestamptz` | Default `now()`                                  |
+
+Access: `src/lib/offers.ts::fetchOfferReviews`.
+
+---
+
+## 3. Enums / status values
+
+Implemented either as a Postgres enum or as a CHECK-constrained text column
+(both work for our code, which uses string literals).
+
+- `AccountStatus`: `AVAILABLE` | `RESERVED` | `SOLD`
+- `OrderStatus` (planned, not yet live): `PENDING` | `PAID` | `DELIVERED` | `REFUNDED`
+- `Role` (planned, not yet live): `USER` | `ADMIN`
+
+---
+
+## 4. RPCs (Postgres functions)
+
+### `public.create_listings_bulk(p_game_id uuid, p_listings jsonb)`
+
+Atomic bulk insert used by the CSV upload flow. All rows succeed or none do.
+
+**Input:** `p_game_id` UUID, `p_listings` JSON array. Each element:
+```json
+{
+  "title": "…",
+  "description": "…",
+  "region": "",
+  "level": "",
+  "rank": "",
+  "price": 4020,
+  "old_price": 8040,
+  "encrypted_credentials": "<ciphertext-or-null>"
+}
+```
+
+**Behaviour:**
+- Inserts a row into `accounts` for each element, using the calling user
+  (`auth.uid()`) as `seller_id`.
+- If `encrypted_credentials` is non-null, also inserts a matching row into
+  `credentials` in the same transaction.
+- Returns the array of new `accounts.id` values.
+
+**Called from:** `src/app/(dashboard)/sell/bulk-actions.ts`.
+
+If you see `Could not find the function public.create_listings_bulk` at
+runtime, the function is missing from the database — reapply the SQL in the
+Supabase SQL editor.
+
+---
+
+## 5. Sequences & triggers
+
+- **`store_id` sequence:** starts at `100`. A trigger on `profiles` assigns
+  the next value when `is_seller` is first set to `true` (or at row insert,
+  depending on current trigger wiring). The effect: every seller has a stable
+  human-friendly ID ≥ 100 used in seller URLs (`/seller/[storeId]`).
+- **`auth.users` → `profiles` trigger:** creates a `profiles` row on new user
+  signup so every auth user has a profile without a separate roundtrip.
+
+---
+
+## 6. Row-Level Security (RLS)
+
+RLS is **ON** on every `public.*` table. The server uses the SSR Supabase
+client (`src/lib/supabase/server.ts`) which carries the authenticated user's
+JWT, so all writes and reads are evaluated against that identity.
+
+Policy intent (verify against live policies when changing schema):
+
+- `profiles` — readable to anyone; writable only to the owning user
+  (`id = auth.uid()`).
+- `games` — readable to anyone; writes admin-only.
+- `accounts` — readable when `status = 'AVAILABLE'` to anyone; rows are also
+  readable to the owning seller regardless of status. Insert/update/delete
+  only when `seller_id = auth.uid()`.
+- `credentials` — readable **only** to `seller_id = auth.uid()`. Never to
+  buyers from the client — credential delivery to the buyer flows through a
+  server action after purchase (not yet implemented).
+- `offer_reviews` — readable to anyone; writable when
+  `reviewer_id = auth.uid()`.
+
+Server actions also add explicit ownership checks on top of RLS (e.g.
+`existing.seller_id !== user.id`) so the user gets a meaningful error rather
+than a generic RLS failure.
+
+---
+
+## 7. Storage
+
+Images (avatars + listing screenshots) are **S3**, not Supabase Storage.
+
+- Presigned PUT URLs issued by Next.js API routes under
+  `src/app/api/uploads/...`.
+- Browser uploads directly to S3; resulting public URL (always `https://…`) is
+  submitted with the form and persisted on the row.
+- On listing delete, `src/lib/s3.ts` uses `DeleteObjectsCommand` to remove the
+  associated objects.
+
+Supabase Storage is **not** used.
+
+---
+
+## 8. Encryption
+
+- Algorithm: **AES-256-GCM** (`node:crypto`).
+- Key: `CREDENTIALS_ENCRYPTION_KEY` env var — 32-byte key hex-encoded.
+  Server-only; never exposed to the client.
+- Ciphertext format (see `src/lib/encryption.ts`): `iv.ciphertext.authTag`,
+  each segment base64-encoded and joined with `.`.
+- The plaintext being encrypted is a **JSON-serialised** `AccountCredentials`
+  object, so schema evolution on the credential fields requires no DB change
+  — just update the type and the readers/writers.
+
+Rotating the key requires re-encrypting every row (decrypt with old key,
+re-encrypt with new). No helper exists for that yet.
+
+---
+
+## 9. Typical query patterns
+
+- **Home feed / category pages** — `accounts` joined with `games` and
+  `profiles` via the `ACCOUNT_SELECT` string in `src/lib/offers.ts`.
+- **Seller's currently-selling list** — `accounts` filtered by `seller_id`,
+  any status, newest first.
+- **Listing detail page** — single `accounts` row + joined game + seller +
+  `offer_reviews` pull.
+- **Creating a listing (single or bulk)** — always re-validates game ID
+  server-side, always re-asserts authenticated user, always re-caps price to
+  `PRICE_CAP_CENTS`.
+
+---
+
+## 10. Known gaps / TODO
+
+- **Orders table** — `orders` + payment status is defined only in the legacy
+  Prisma schema. Stripe integration in `src/lib/stripe.ts` is scaffolding.
+- **Credential delivery flow** — reading credentials as a buyer post-purchase
+  is not yet wired; currently only the seller can read their own row.
+- **Admin role** — no `role` column on `profiles` yet; admin tooling is
+  out-of-band.
+- **Migrations** — there is no SQL migration folder in the repo. Schema
+  changes are applied directly in the Supabase SQL editor. Consider moving
+  to Supabase migrations so the schema is reviewable in PRs.
+- **Prisma schema** — delete or resync `prisma/schema.prisma`; it's currently
+  misleading.
+
+---
+
+## 11. When in doubt
+
+- Check what the code actually queries (`grep -n "\.from\(" src/`).
+- For a missing column / function error at runtime, the fix is almost always
+  in the Supabase SQL editor, not in Prisma.
+- Before altering a table, search `src/` for every `.from("table_name")` call
+  and make sure the change is backward-compatible with the columns those
+  queries select.
