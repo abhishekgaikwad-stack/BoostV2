@@ -1,10 +1,11 @@
 # Boost V2 — Database Architecture
 
-Source of truth: the live **Supabase Postgres** database. The `prisma/schema.prisma`
-in this repo is historical/aspirational and **does not match the live schema** —
-do not edit it expecting migrations to run. All schema work is done via the
-Supabase SQL editor (or Supabase migrations), and read/write at runtime uses the
-Supabase JS client.
+Source of truth: the live **Supabase Postgres** database. Schema work is done
+in the Supabase SQL editor (there is no SQL migration folder in the repo yet),
+and read/write at runtime goes through the Supabase JS client. A Prisma client
+is still generated under `src/generated/prisma/` and `src/lib/prisma.ts` exists
+as a lazy singleton, but nothing in the runtime app imports from it — treat it
+as dead weight pending cleanup.
 
 Images are stored in **S3** (direct presigned uploads), not Supabase Storage.
 
@@ -292,8 +293,8 @@ re-encrypt with new). No helper exists for that yet.
 
 ## 10. Known gaps / TODO
 
-- **Orders table** — `orders` + payment status is defined only in the legacy
-  Prisma schema. Stripe integration in `src/lib/stripe.ts` is scaffolding.
+- **Orders table** — no `orders` / payment-status table exists yet. Stripe
+  integration in `src/lib/stripe.ts` is scaffolding.
 - **Credential delivery flow** — reading credentials as a buyer post-purchase
   is not yet wired; currently only the seller can read their own row.
 - **Admin role** — no `role` column on `profiles` yet; admin tooling is
@@ -301,8 +302,12 @@ re-encrypt with new). No helper exists for that yet.
 - **Migrations** — there is no SQL migration folder in the repo. Schema
   changes are applied directly in the Supabase SQL editor. Consider moving
   to Supabase migrations so the schema is reviewable in PRs.
-- **Prisma schema** — delete or resync `prisma/schema.prisma`; it's currently
-  misleading.
+- **Prisma cleanup** — `prisma/schema.prisma` has been deleted.
+  `prisma.config.ts`, `prisma/seed.ts`, `src/lib/prisma.ts`, and the
+  generated client under `src/generated/prisma/` are all unused; decide
+  whether to remove them and drop the `prisma` / `@prisma/*` deps from
+  `package.json`, or keep them as scaffolding for a future Prisma-based
+  rewrite.
 
 ---
 
