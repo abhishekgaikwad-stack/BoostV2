@@ -22,9 +22,6 @@ type AccountRow = {
   id: string;
   title: string;
   description: string | null;
-  region: string | null;
-  level: string | null;
-  rank: string | null;
   price: number;
   old_price: number | null;
   images: string[];
@@ -36,7 +33,7 @@ type AccountRow = {
 };
 
 const ACCOUNT_SELECT = `
-  id, title, description, region, level, rank,
+  id, title, description,
   price, old_price, images, status, offer_ends_at, created_at,
   game:games(id, slug, name, subtitle, cover),
   seller:profiles(id, name, avatar_url, store_id)
@@ -63,9 +60,6 @@ function toAccount(row: AccountRow): Account {
       name: row.seller.name ?? "Seller",
     },
     title: row.title,
-    region: row.region ?? "",
-    level: row.level ?? "",
-    rank: row.rank ?? "",
     price: row.price / 100,
     oldPrice: row.old_price != null ? row.old_price / 100 : undefined,
     images: row.images ?? [],

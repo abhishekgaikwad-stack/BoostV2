@@ -101,9 +101,6 @@ historical ("accounts" the product, not a user account).
 | `seller_id`       | FK → `auth.users.id` (uuid) | Required. Ownership check enforced by RLS **and** by server action before update/delete |
 | `title`           | `text`                    | Required                                                           |
 | `description`     | `text`                    | Nullable                                                           |
-| `region`          | `text`                    | Nullable, free-form                                                |
-| `level`           | `text`                    | Nullable, free-form                                                |
-| `rank`            | `text`                    | Nullable, free-form                                                |
 | `price`           | `int`                     | **Cents**. `0 < price ≤ 100_000` (€1000 cap).                     |
 | `old_price`       | `int`                     | **Cents**, nullable. When set, must be `>= price`. No upper cap.  |
 | `images`          | `text[]`                  | Array of public S3 URLs. Server filters to `https://` prefix and slices to 10. |
@@ -188,9 +185,6 @@ Atomic bulk insert used by the CSV upload flow. All rows succeed or none do.
 {
   "title": "…",
   "description": "…",
-  "region": "",
-  "level": "",
-  "rank": "",
   "price": 4020,
   "old_price": 8040,
   "encrypted_credentials": "<ciphertext-or-null>"

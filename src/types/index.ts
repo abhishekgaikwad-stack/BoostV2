@@ -17,9 +17,6 @@ export type Account = {
     rating?: number;
   };
   title: string;
-  region: string;
-  level: string;
-  rank: string;
   price: number;
   oldPrice?: number;
   images?: string[];

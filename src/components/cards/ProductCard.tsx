@@ -137,12 +137,6 @@ export function ProductCard({
         {account.title}
       </h3>
 
-      <div className="flex flex-wrap gap-2">
-        <Pill tone={tone}>{account.region}</Pill>
-        <Pill tone={tone}>{account.level}</Pill>
-        <Pill tone={tone}>{account.rank}</Pill>
-      </div>
-
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <span
@@ -178,24 +172,5 @@ export function ProductCard({
         ) : null}
       </div>
     </Link>
-  );
-}
-
-function Pill({
-  tone,
-  children,
-}: {
-  tone: "light" | "dark";
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "rounded-lg px-2 py-1.5 font-display text-[8px] font-medium leading-3 text-brand-text-secondary-dark",
-        tone === "dark" ? "bg-brand-bg-elevated" : "bg-brand-bg-pill",
-      )}
-    >
-      {children}
-    </span>
   );
 }

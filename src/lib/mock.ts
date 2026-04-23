@@ -25,9 +25,6 @@ const sampleAccount = (id: string): Account => ({
     rating: 4.87,
   },
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
-  region: "ASIA PACIFIC",
-  level: "Level 10",
-  rank: "GOLD III",
   price: 40.2,
   oldPrice: 80.4,
 });
@@ -137,9 +134,6 @@ export const flashSaleAccount: Account = {
     rating: 4.87,
   },
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
-  region: "ASIA PACIFIC",
-  level: "Level 10",
-  rank: "GOLD III",
   price: 40.2,
   oldPrice: 80.4,
 };
