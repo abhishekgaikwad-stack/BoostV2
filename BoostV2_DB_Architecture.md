@@ -2,10 +2,7 @@
 
 Source of truth: the live **Supabase Postgres** database. Schema work is done
 in the Supabase SQL editor (there is no SQL migration folder in the repo yet),
-and read/write at runtime goes through the Supabase JS client. A Prisma client
-is still generated under `src/generated/prisma/` and `src/lib/prisma.ts` exists
-as a lazy singleton, but nothing in the runtime app imports from it — treat it
-as dead weight pending cleanup.
+and read/write at runtime goes through the Supabase JS client.
 
 Images are stored in **S3** (direct presigned uploads), not Supabase Storage.
 
@@ -302,12 +299,6 @@ re-encrypt with new). No helper exists for that yet.
 - **Migrations** — there is no SQL migration folder in the repo. Schema
   changes are applied directly in the Supabase SQL editor. Consider moving
   to Supabase migrations so the schema is reviewable in PRs.
-- **Prisma cleanup** — `prisma/schema.prisma` has been deleted.
-  `prisma.config.ts`, `prisma/seed.ts`, `src/lib/prisma.ts`, and the
-  generated client under `src/generated/prisma/` are all unused; decide
-  whether to remove them and drop the `prisma` / `@prisma/*` deps from
-  `package.json`, or keep them as scaffolding for a future Prisma-based
-  rewrite.
 
 ---
 
