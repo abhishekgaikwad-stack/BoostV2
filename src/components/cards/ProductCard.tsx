@@ -4,6 +4,7 @@ import { Bookmark, Heart, Star, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Account } from "@/types";
+import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { gameImage } from "@/lib/images";
 import { cn, discountPercent } from "@/lib/utils";
 
@@ -17,6 +18,8 @@ export function ProductCard({
   className?: string;
 }) {
   const isDark = tone === "dark";
+  const wishlist = useWishlist();
+  const isWishlisted = wishlist?.isWishlisted(account.id) ?? false;
 
   return (
     <Link
@@ -63,19 +66,27 @@ export function ProductCard({
         </div>
         <button
           type="button"
-          aria-label="Save to wishlist"
+          aria-label={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
+          aria-pressed={isWishlisted}
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
+            wishlist?.toggle(account.id);
           }}
           className={cn(
             "grid h-10 w-10 place-items-center rounded-lg border transition",
-            isDark
-              ? "border-brand-border-subtle bg-brand-bg-elevated text-brand-text-primary-dark hover:bg-brand-border"
-              : "border-brand-border-light bg-white text-brand-text-primary-light hover:bg-brand-bg-pill",
+            isWishlisted
+              ? "border-brand-discount bg-brand-discount text-white"
+              : isDark
+                ? "border-brand-border-subtle bg-brand-bg-elevated text-brand-text-primary-dark hover:bg-brand-border"
+                : "border-brand-border-light bg-white text-brand-text-primary-light hover:bg-brand-bg-pill",
           )}
         >
-          <Heart className="h-5 w-5" strokeWidth={1.5} />
+          <Heart
+            className="h-5 w-5"
+            strokeWidth={1.5}
+            fill={isWishlisted ? "currentColor" : "none"}
+          />
         </button>
       </header>
 

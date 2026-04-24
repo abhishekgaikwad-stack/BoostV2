@@ -29,7 +29,10 @@ public.profiles ──┐
     │        public.credentials   (AES-256-GCM ciphertext)
     │
     │ (reviewer) ▼
-    └──── public.offer_reviews ─── public.accounts
+    ├──── public.offer_reviews ─── public.accounts
+    │
+    │ (user) ▼
+    └──── public.wishlists      ─── public.accounts
 ```
 
 Money is stored as **integer cents**. Convert at the boundary
@@ -163,6 +166,32 @@ queries.
 | `created_at`   | `timestamptz` | Default `now()`                                  |
 
 Access: `src/lib/offers.ts::fetchOfferReviews`.
+
+---
+
+### `public.wishlists`
+
+Per-user wishlist (many-to-many between `auth.users` and `accounts`). See
+`db/migrations/0004_wishlists.sql`.
+
+| Column        | Type          | Notes                                         |
+|---------------|---------------|-----------------------------------------------|
+| `user_id`     | `uuid` (PK)   | FK → `auth.users.id`, on delete cascade       |
+| `account_id`  | `uuid` (PK)   | FK → `accounts.id`, on delete cascade         |
+| `created_at`  | `timestamptz` | Default `now()` — used to sort the wishlist page |
+
+Composite primary key `(user_id, account_id)` enforces uniqueness (one
+listing can't be wishlisted twice by the same user) and covers the
+"is this listing in my wishlist" lookup.
+
+Indexing:
+- `idx_wishlists_user_created` on `(user_id, created_at DESC, account_id DESC)`
+  — covers the `/wishlist` page feed + cursor pagination tie-break.
+
+RLS: user can only see and mutate their own rows (`user_id = auth.uid()`).
+
+Access: `src/lib/wishlist.ts` (read helpers) and
+`src/lib/wishlist-actions.ts` (`toggleWishlist` server action).
 
 ---
 

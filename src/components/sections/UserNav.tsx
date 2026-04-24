@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Package, User, UserCircle } from "lucide-react";
+import { Heart, LogOut, Package, User, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -111,6 +111,12 @@ export function UserNav() {
             href="/profile"
             icon={<UserCircle className="h-4 w-4" strokeWidth={1.5} />}
             label="Profile"
+            onClick={() => setOpen(false)}
+          />
+          <MenuLink
+            href="/wishlist"
+            icon={<Heart className="h-4 w-4" strokeWidth={1.5} />}
+            label="Wishlist"
             onClick={() => setOpen(false)}
           />
           {session.isSeller ? (

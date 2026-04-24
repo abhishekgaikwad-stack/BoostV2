@@ -18,7 +18,7 @@ type SellerRow = {
   store_id: number | null;
 };
 
-type AccountRow = {
+export type AccountRow = {
   id: string;
   title: string;
   description: string | null;
@@ -32,7 +32,7 @@ type AccountRow = {
   seller: SellerRow;
 };
 
-const ACCOUNT_SELECT = `
+export const ACCOUNT_SELECT = `
   id, title, description,
   price, old_price, images, status, offer_ends_at, created_at,
   game:games(id, slug, name, subtitle, cover),
@@ -51,7 +51,7 @@ function toGame(row: GameRow): Game {
   };
 }
 
-function toAccount(row: AccountRow): Account {
+export function toAccount(row: AccountRow): Account {
   return {
     id: row.id,
     game: toGame(row.game),
@@ -80,13 +80,13 @@ export type ListingPage = {
   nextCursor: ListingCursor | null;
 };
 
-type CursorPayload = { c: string; i: string };
+export type CursorPayload = { c: string; i: string };
 
-function encodeCursor(payload: CursorPayload): ListingCursor {
+export function encodeCursor(payload: CursorPayload): ListingCursor {
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
 }
 
-function decodeCursor(cursor: ListingCursor): CursorPayload | null {
+export function decodeCursor(cursor: ListingCursor): CursorPayload | null {
   try {
     const obj = JSON.parse(
       Buffer.from(cursor, "base64url").toString("utf8"),
