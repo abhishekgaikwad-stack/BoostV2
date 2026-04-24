@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, DM_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { Suspense } from "react";
+import { LoginSuccessToast } from "@/components/auth/LoginSuccessToast";
 import "./globals.css";
 
 const gintoNord = localFont({
@@ -43,6 +45,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
+        <Suspense fallback={null}>
+          <LoginSuccessToast />
+        </Suspense>
       </body>
     </html>
   );
