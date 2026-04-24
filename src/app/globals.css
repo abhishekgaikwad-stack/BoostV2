@@ -154,7 +154,7 @@
 
 @keyframes snackbar-in {
   from {
-    transform: translateY(-160%);
+    transform: translateY(160%);
     opacity: 0;
   }
   to {
