@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useTransition } from "react";
+import { useAuthPrompt } from "@/components/auth/AuthPromptProvider";
 import { toggleWishlist } from "@/lib/wishlist-actions";
 
 type WishlistContextValue = {
@@ -25,9 +26,15 @@ export function WishlistProvider({
 }) {
   const [ids, setIds] = useState<Set<string>>(() => new Set(initialIds));
   const [pending, startTransition] = useTransition();
+  const { requireLogin } = useAuthPrompt();
 
   const toggle = (accountId: string) => {
-    if (!enabled) return;
+    if (!enabled) {
+      // Skip the optimistic flip — an anon heart flashing red and rolling back
+      // would be jarring. Prompt for login immediately instead.
+      requireLogin();
+      return;
+    }
 
     const wasLiked = ids.has(accountId);
     setIds((prev) => {
@@ -47,6 +54,8 @@ export function WishlistProvider({
           else next.delete(accountId);
           return next;
         });
+        // Session expired mid-session (cookie dropped, browser restarted, etc).
+        if (result.error === "SIGN_IN_REQUIRED") requireLogin();
       }
     });
   };

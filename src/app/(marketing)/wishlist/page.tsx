@@ -1,16 +1,16 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getMyWishlistPage } from "@/lib/wishlist";
+import { WishlistSignInPrompt } from "./WishlistSignInPrompt";
 
 export default async function WishlistPage() {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return <WishlistSignInPrompt />;
 
   const { items: offers } = await getMyWishlistPage({ limit: 48 });
 
