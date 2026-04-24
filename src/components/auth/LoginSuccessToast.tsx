@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type ToastState = "hidden" | "visible" | "leaving";
@@ -24,24 +24,31 @@ export function LoginSuccessToast() {
   const pathname = usePathname();
   const router = useRouter();
   const [state, setState] = useState<ToastState>("hidden");
+  // Guards against re-entry: router.replace below bumps `searchParams`, which
+  // would otherwise re-run this effect and cancel the timers.
+  const shownRef = useRef(false);
 
   // Fire on `?auth=success`.
   useEffect(() => {
+    if (shownRef.current) return;
     if (searchParams.get("auth") !== "success") return;
 
+    shownRef.current = true;
     setState("visible");
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete("auth");
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-
-    const toLeaving = window.setTimeout(
-      () => setState("leaving"),
-      VISIBLE_MS,
-    );
-    return () => window.clearTimeout(toLeaving);
   }, [searchParams, pathname, router]);
+
+  // 5s hold, then start the exit animation. Keyed on `state` so the timer is
+  // immune to unrelated re-renders from `router.replace`.
+  useEffect(() => {
+    if (state !== "visible") return;
+    const toLeaving = window.setTimeout(() => setState("leaving"), VISIBLE_MS);
+    return () => window.clearTimeout(toLeaving);
+  }, [state]);
 
   // After the exit animation plays, unmount so a future trigger gets a fresh
   // enter animation.
