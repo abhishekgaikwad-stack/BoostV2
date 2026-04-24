@@ -7,9 +7,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white lg:pl-[120px]">
+    <div className="flex min-h-screen flex-col bg-white lg:pl-[120px]">
       <SiteHeader />
-      <main className="flex flex-col gap-[calc(var(--spacing)*18)] px-[calc(var(--spacing)*28)] pb-[calc(var(--spacing)*36)] pt-[calc(var(--spacing)*12)]">
+      <main className="flex flex-1 flex-col gap-[calc(var(--spacing)*18)] px-[calc(var(--spacing)*28)] pb-[calc(var(--spacing)*36)] pt-[calc(var(--spacing)*12)]">
         {children}
       </main>
       <SiteFooter />
