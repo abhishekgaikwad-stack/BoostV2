@@ -7,6 +7,7 @@ import {
 } from "@/lib/credentials";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_CAP_CENTS, PRICE_MAX_EUR } from "@/lib/utils";
+import { isDiscountActive, parseDiscountFromFormData } from "@/lib/discount";
 
 export type UpdateListingState = {
   error?: string;
@@ -24,11 +25,13 @@ export async function updateListing(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
-  // Fetch the row to confirm ownership. RLS would also block a wrong-user
-  // update, but asserting here gives us a clear error message.
+  // Fetch the row to confirm ownership + read the current discount state so
+  // we know whether to accept new discount inputs or preserve the active one.
+  // RLS would also block a wrong-user update, but asserting here gives us a
+  // clear error message.
   const { data: existing, error: fetchError } = await supabase
     .from("accounts")
-    .select("id, seller_id, game_id")
+    .select("id, seller_id, game_id, discount_price, discount_ends_at")
     .eq("id", offerId)
     .maybeSingle();
   if (fetchError || !existing) return { error: "Listing not found." };
@@ -72,15 +75,29 @@ export async function updateListing(
     .filter((url) => typeof url === "string" && url.startsWith("https://"))
     .slice(0, 10);
 
+  // Discount cannot be stopped or paused — while one is active, skip the
+  // form fields entirely and leave the existing `discount_*` columns alone.
+  // Only once the existing discount has expired do we let the seller set a
+  // new one (or leave both fields blank to run no discount at all).
+  const updatePayload: Record<string, unknown> = {
+    title,
+    description,
+    price,
+    old_price: oldPrice,
+    images,
+  };
+  if (
+    !isDiscountActive(existing.discount_price, existing.discount_ends_at)
+  ) {
+    const discountResult = parseDiscountFromFormData(formData, price);
+    if ("error" in discountResult) return { error: discountResult.error };
+    updatePayload.discount_price = discountResult.discount_price;
+    updatePayload.discount_ends_at = discountResult.discount_ends_at;
+  }
+
   const { error: updateError } = await supabase
     .from("accounts")
-    .update({
-      title,
-      description,
-      price,
-      old_price: oldPrice,
-      images,
-    })
+    .update(updatePayload)
     .eq("id", offerId);
   if (updateError) return { error: updateError.message };
 

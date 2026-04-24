@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   type UpdateListingState,
   updateListing,
@@ -9,6 +9,8 @@ import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
 import type { AccountCredentials } from "@/lib/credentials";
+import { DISCOUNT_MAX_HOURS, isDiscountActive } from "@/lib/discount";
+import { formatDiscountCountdown } from "@/lib/utils";
 
 const initialState: UpdateListingState = {};
 
@@ -18,6 +20,8 @@ export type EditableListing = {
   description: string | null;
   price: number; // cents
   oldPrice: number | null; // cents
+  discountPrice: number | null; // cents
+  discountEndsAt: string | null; // ISO
   images: string[];
   game: { slug: string; name: string };
 };
@@ -94,6 +98,11 @@ export function EditListingForm({
         </Field>
       </div>
 
+      <DiscountSection
+        discountPrice={listing.discountPrice}
+        discountEndsAt={listing.discountEndsAt}
+      />
+
       <CredentialsFieldset initial={credentials} />
 
       {state.error ? (
@@ -132,5 +141,92 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Two-mode discount section:
+ * - Active:   read-only card showing the running price + live countdown. The
+ *             seller cannot stop, pause, or edit while it's running.
+ * - Inactive: empty inputs. Leave them blank to not run a discount.
+ */
+function DiscountSection({
+  discountPrice,
+  discountEndsAt,
+}: {
+  discountPrice: number | null;
+  discountEndsAt: string | null;
+}) {
+  const active = isDiscountActive(discountPrice, discountEndsAt);
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-2xl border border-brand-border-light p-4">
+      <legend className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
+        Run discount
+      </legend>
+      {active && discountEndsAt && discountPrice != null ? (
+        <ActiveDiscountCard price={discountPrice} endsAt={discountEndsAt} />
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Discount price (€)">
+            <DecimalInput
+              name="discountPrice"
+              placeholder="e.g. 30.00"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
+            />
+          </Field>
+          <Field label={`Duration (hrs, max ${DISCOUNT_MAX_HOURS})`}>
+            <DecimalInput
+              name="discountHours"
+              decimals={1}
+              max={DISCOUNT_MAX_HOURS}
+              placeholder="24"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
+            />
+          </Field>
+          <p className="col-span-2 font-display text-[12px] leading-4 text-brand-text-secondary-light">
+            Leave both blank to skip. Discount price must be less than the
+            selling price. Once started, a discount cannot be stopped or
+            paused — it runs until it expires or you delete the listing.
+          </p>
+        </div>
+      )}
+    </fieldset>
+  );
+}
+
+function ActiveDiscountCard({
+  price,
+  endsAt,
+}: {
+  price: number; // cents
+  endsAt: string;
+}) {
+  const [label, setLabel] = useState<string | null>(() =>
+    formatDiscountCountdown(endsAt),
+  );
+
+  useEffect(() => {
+    const tick = () => setLabel(formatDiscountCountdown(endsAt));
+    tick();
+    const handle = window.setInterval(tick, 1000);
+    return () => window.clearInterval(handle);
+  }, [endsAt]);
+
+  return (
+    <div className="flex flex-col gap-1 rounded-xl bg-brand-bg-pill px-4 py-3">
+      <span className="font-display text-[12px] font-medium text-brand-text-secondary-light">
+        A discount of{" "}
+        <span className="text-brand-text-primary-light">
+          €{(price / 100).toFixed(2)}
+        </span>{" "}
+        is currently running.
+      </span>
+      <span className="font-display text-[13px] font-medium text-brand-text-primary-light">
+        {label ? `Ends in ${label}` : "Ending now…"}
+      </span>
+      <span className="font-display text-[11px] leading-4 text-brand-text-secondary-light">
+        You can start a new discount after this one ends.
+      </span>
+    </div>
   );
 }

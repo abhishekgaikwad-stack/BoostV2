@@ -5,7 +5,11 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { paymentIcon } from "@/lib/images";
-import { discountPercent, formatOfferEnds } from "@/lib/utils";
+import {
+  discountPercent,
+  formatDiscountCountdown,
+  formatOfferEnds,
+} from "@/lib/utils";
 import type { Offer } from "@/types";
 
 const paymentMethods = [
@@ -19,8 +23,13 @@ const paymentMethods = [
 export function BuyBox({ offer }: { offer: Offer }) {
   const [isSignedIn, setSignedIn] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
+  // Countdown label. A flash discount takes priority over the generic
+  // offer_ends_at timer — shows "Limited offer 24Hrs 21Min 52Secs" (1s tick).
+  // Fallback: the legacy "OFFER ENDS IN 42HRS 32MIN" (1min tick).
   const [endsLabel, setEndsLabel] = useState<string | null>(() =>
-    formatOfferEnds(offer.offerEndsAt),
+    offer.discountEndsAt
+      ? formatDiscountCountdown(offer.discountEndsAt)
+      : formatOfferEnds(offer.offerEndsAt),
   );
 
   useEffect(() => {
@@ -35,13 +44,22 @@ export function BuyBox({ offer }: { offer: Offer }) {
   }, []);
 
   useEffect(() => {
-    if (!offer.offerEndsAt) return;
-    const tick = () => setEndsLabel(formatOfferEnds(offer.offerEndsAt));
-    tick();
-    // Update once a minute — minute-level granularity is enough for "42HRS 32MIN".
-    const handle = window.setInterval(tick, 60_000);
-    return () => window.clearInterval(handle);
-  }, [offer.offerEndsAt]);
+    if (offer.discountEndsAt) {
+      const tick = () =>
+        setEndsLabel(formatDiscountCountdown(offer.discountEndsAt));
+      tick();
+      const handle = window.setInterval(tick, 1_000);
+      return () => window.clearInterval(handle);
+    }
+    if (offer.offerEndsAt) {
+      const tick = () => setEndsLabel(formatOfferEnds(offer.offerEndsAt));
+      tick();
+      // Minute-level granularity is enough for "42HRS 32MIN".
+      const handle = window.setInterval(tick, 60_000);
+      return () => window.clearInterval(handle);
+    }
+    setEndsLabel(null);
+  }, [offer.discountEndsAt, offer.offerEndsAt]);
 
   async function signInWith(provider: "google" | "discord") {
     const supabase = createSupabaseBrowserClient();
@@ -66,16 +84,24 @@ export function BuyBox({ offer }: { offer: Offer }) {
     <aside className="sticky top-[calc(var(--spacing)*12)] flex w-full flex-col gap-4 self-start rounded-3xl bg-black p-6 text-white">
       {(() => {
         const pct = discountPercent(offer.price, offer.oldPrice);
-        return pct ? (
+        const isFlash = Boolean(offer.discountEndsAt);
+        if (!pct && !isFlash) return null;
+        return (
           <div className="flex items-center gap-3 font-mono text-[11px] tracking-[0.1em] text-brand-text-secondary-dark">
-            <span className="rounded-md bg-brand-accent px-2 py-1 font-display text-[11px] font-bold text-black">
-              -{pct}%
-            </span>
+            {pct ? (
+              <span className="rounded-md bg-brand-accent px-2 py-1 font-display text-[11px] font-bold text-black">
+                -{pct}%
+              </span>
+            ) : null}
             <span className="uppercase text-brand-accent">
-              {endsLabel ?? "Limited offer"}
+              {isFlash
+                ? endsLabel
+                  ? `Limited offer ${endsLabel}`
+                  : "Limited offer"
+                : (endsLabel ?? "Limited offer")}
             </span>
           </div>
-        ) : null;
+        );
       })()}
 
       <div className="flex items-baseline gap-3">

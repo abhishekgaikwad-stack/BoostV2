@@ -9,6 +9,7 @@ import {
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
+import { DISCOUNT_MAX_HOURS } from "@/lib/discount";
 import type { Game } from "@/types";
 
 const initialState: CreateListingState = {};
@@ -90,6 +91,34 @@ export function CreateListingForm({ games }: { games: Game[] }) {
           />
         </Field>
       </div>
+
+      <fieldset className="flex flex-col gap-3 rounded-2xl border border-brand-border-light p-4">
+        <legend className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
+          Run discount (optional)
+        </legend>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Discount price (€)">
+            <DecimalInput
+              name="discountPrice"
+              placeholder="e.g. 30.00"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+            />
+          </Field>
+          <Field label={`Duration (hrs, max ${DISCOUNT_MAX_HOURS})`}>
+            <DecimalInput
+              name="discountHours"
+              decimals={1}
+              max={DISCOUNT_MAX_HOURS}
+              placeholder="24"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+            />
+          </Field>
+        </div>
+        <p className="font-display text-[12px] leading-4 text-brand-text-secondary-light">
+          Leave both blank to skip. Discount price must be less than the
+          selling price. Once started, a discount cannot be stopped or paused.
+        </p>
+      </fieldset>
 
       {state.error ? (
         <p className="font-display text-[12px] font-medium text-brand-discount">

@@ -106,10 +106,23 @@ historical ("accounts" the product, not a user account).
 | `description`     | `text`                    | Nullable                                                           |
 | `price`           | `int`                     | **Cents**. `0 < price ≤ 100_000` (€1000 cap).                     |
 | `old_price`       | `int`                     | **Cents**, nullable. When set, must be `>= price`. No upper cap.  |
+| `discount_price`  | `int`                     | **Cents**, nullable. Flash-discount price; see below.             |
+| `discount_ends_at`| `timestamptz`             | Nullable; when set, pairs with `discount_price` (CHECK constraint).|
 | `images`          | `text[]`                  | Array of public S3 URLs. Server filters to `https://` prefix and slices to 10. |
 | `status`          | enum-as-text              | `AVAILABLE` \| `RESERVED` \| `SOLD`. Defaults to `AVAILABLE`.       |
-| `offer_ends_at`   | `timestamptz`             | Optional countdown deadline                                        |
+| `offer_ends_at`   | `timestamptz`             | Optional countdown deadline (legacy, not exposed in seller forms). |
 | `created_at`      | `timestamptz`             | Default `now()`                                                    |
+
+**Flash discounts (`discount_price` + `discount_ends_at`, migration 0005):**
+Seller-initiated short-term discount (max 72h). While `discount_ends_at` is
+in the future, `src/lib/offers.ts::toAccount` promotes `discount_price` to
+the effective selling price and fills `Account.discountEndsAt` so the
+BuyBox can render a "Limited offer 24Hrs 21Min 52Secs" countdown. Once the
+deadline passes, reads revert to `price` automatically — no cron is needed.
+The "discount must be less than price" rule is enforced in the server
+action, not by a CHECK, so later edits that lower `price` don't collide
+with a running discount. Cannot be stopped or paused — the only way to
+cancel a running discount is to delete the listing.
 
 Indexing (live — see `db/migrations/0003_composite_listing_indexes.sql`):
 - `idx_accounts_game_status_created`   — `(game_id, status, created_at DESC, id DESC)` — game-detail feed

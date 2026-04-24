@@ -24,6 +24,8 @@ export type AccountRow = {
   description: string | null;
   price: number;
   old_price: number | null;
+  discount_price: number | null;
+  discount_ends_at: string | null;
   images: string[];
   status: "AVAILABLE" | "RESERVED" | "SOLD";
   offer_ends_at: string | null;
@@ -34,7 +36,8 @@ export type AccountRow = {
 
 export const ACCOUNT_SELECT = `
   id, title, description,
-  price, old_price, images, status, offer_ends_at, created_at,
+  price, old_price, discount_price, discount_ends_at,
+  images, status, offer_ends_at, created_at,
   game:games(id, slug, name, subtitle, cover),
   seller:profiles(id, name, avatar_url, store_id)
 `;
@@ -52,6 +55,17 @@ function toGame(row: GameRow): Game {
 }
 
 export function toAccount(row: AccountRow): Account {
+  // A flash discount is "active" until its end timestamp passes. When active,
+  // we promote `discount_price` to the effective selling price; `old_price`
+  // (MRP) stays in the struck-through slot, so the card naturally renders
+  // discount-vs-MRP. When inactive, reads revert to the regular `price`.
+  const discountActive =
+    row.discount_price != null &&
+    row.discount_ends_at != null &&
+    new Date(row.discount_ends_at).getTime() > Date.now();
+
+  const effectiveCents = discountActive ? row.discount_price! : row.price;
+
   return {
     id: row.id,
     game: toGame(row.game),
@@ -60,8 +74,9 @@ export function toAccount(row: AccountRow): Account {
       name: row.seller.name ?? "Seller",
     },
     title: row.title,
-    price: row.price / 100,
+    price: effectiveCents / 100,
     oldPrice: row.old_price != null ? row.old_price / 100 : undefined,
+    discountEndsAt: discountActive ? row.discount_ends_at! : undefined,
     images: row.images ?? [],
   };
 }

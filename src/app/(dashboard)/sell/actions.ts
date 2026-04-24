@@ -8,6 +8,7 @@ import {
 } from "@/lib/credentials";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_CAP_CENTS, PRICE_MAX_EUR } from "@/lib/utils";
+import { parseDiscountFromFormData } from "@/lib/discount";
 
 export type CreateListingState = {
   error?: string;
@@ -71,6 +72,9 @@ export async function createListing(
     }
   }
 
+  const discountResult = parseDiscountFromFormData(formData, price);
+  if ("error" in discountResult) return { error: discountResult.error };
+
   const { data, error } = await supabase
     .from("accounts")
     .insert({
@@ -80,6 +84,8 @@ export async function createListing(
       description,
       price,
       old_price: oldPrice,
+      discount_price: discountResult.discount_price,
+      discount_ends_at: discountResult.discount_ends_at,
       images,
       status: "AVAILABLE",
     })

@@ -17,8 +17,16 @@ export type Account = {
     rating?: number;
   };
   title: string;
+  /**
+   * Effective selling price in whole euros. When a flash discount is active,
+   * this is the discount price (not the regular selling price). See
+   * `toAccount` for the derivation.
+   */
   price: number;
+  /** MRP/struck-through price in whole euros. Never the regular selling price. */
   oldPrice?: number;
+  /** ISO timestamp when the active flash discount expires, if any. */
+  discountEndsAt?: string;
   images?: string[];
 };
 
