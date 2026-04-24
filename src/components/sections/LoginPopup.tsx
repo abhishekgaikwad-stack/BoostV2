@@ -23,12 +23,17 @@ export function LoginPopup({
   const cardRef = useRef<HTMLDivElement | null>(null);
   const supabase = createSupabaseBrowserClient();
 
+  function buildCallbackUrl() {
+    const next = `${window.location.pathname}${window.location.search}`;
+    return `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`;
+  }
+
   async function signInWithProvider(provider: "google" | "discord") {
     setErrorMsg(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
+        redirectTo: buildCallbackUrl(),
       },
     });
     if (error) setErrorMsg(error.message);
@@ -41,7 +46,7 @@ export function LoginPopup({
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        emailRedirectTo: buildCallbackUrl(),
       },
     });
     if (error) {
