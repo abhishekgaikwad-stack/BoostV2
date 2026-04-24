@@ -151,3 +151,34 @@
     @apply font-sans;
   }
 }
+
+@keyframes snackbar-in {
+  from {
+    transform: translateY(-160%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes snackbar-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(160%);
+    opacity: 0;
+  }
+}
+
+/* easeOutBack — overshoots then settles for a spring-like landing. */
+.animate-snackbar-in {
+  animation: snackbar-in 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-snackbar-out {
+  animation: snackbar-out 0.35s cubic-bezier(0.55, 0, 0.7, 0.2) both;
+}
