@@ -2,7 +2,9 @@
 
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuthPrompt } from "@/components/auth/AuthPromptProvider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { paymentIcon } from "@/lib/images";
 import {
@@ -21,6 +23,8 @@ const paymentMethods = [
 ];
 
 export function BuyBox({ offer }: { offer: Offer }) {
+  const router = useRouter();
+  const { requireLogin } = useAuthPrompt();
   const [isSignedIn, setSignedIn] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
   // Countdown label. A flash discount takes priority over the generic
@@ -73,11 +77,13 @@ export function BuyBox({ offer }: { offer: Offer }) {
     });
   }
 
-  async function handleBuyNow() {
+  function handleBuyNow() {
+    if (isSignedIn === false) {
+      requireLogin();
+      return;
+    }
     setPending(true);
-    // TODO: create Stripe Checkout Session via /api/checkout → redirect
-    window.alert("Checkout coming soon.");
-    setPending(false);
+    router.push(`/checkout/${offer.id}`);
   }
 
   return (

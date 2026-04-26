@@ -271,6 +271,17 @@ export async function firstFlashOffer(): Promise<Account | null> {
   return toAccount(data as unknown as AccountRow);
 }
 
+export async function findOfferById(offerId: string): Promise<Account | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("accounts")
+    .select(ACCOUNT_SELECT)
+    .eq("id", offerId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return toAccount(data as unknown as AccountRow);
+}
+
 export async function findOffer(
   gameSlug: string,
   offerId: string,
