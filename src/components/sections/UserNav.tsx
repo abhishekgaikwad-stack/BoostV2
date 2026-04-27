@@ -226,27 +226,33 @@ function Header({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[#2a2a2a]">
-        {avatarUrl ? (
-          <Image
-            src={avatarUrl}
-            alt=""
-            fill
-            sizes="56px"
-            className="object-cover"
-          />
-        ) : (
-          <User className="h-6 w-6 text-white" strokeWidth={1.5} />
-        )}
-      </span>
-      <span className="flex-1 truncate font-display text-[16px] font-medium text-white">
-        {name ?? "User"}
-      </span>
+      <Link
+        href="/profile"
+        onClick={onLinkClick}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg transition hover:opacity-80"
+      >
+        <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[#2a2a2a]">
+          {avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              alt=""
+              fill
+              sizes="56px"
+              className="object-cover"
+            />
+          ) : (
+            <User className="h-6 w-6 text-white" strokeWidth={1.5} />
+          )}
+        </span>
+        <span className="min-w-0 flex-1 truncate font-display text-[16px] font-medium text-white">
+          {name ?? "User"}
+        </span>
+      </Link>
       {showSellCta ? (
         <Link
           href="/sell"
           onClick={onLinkClick}
-          className="inline-flex h-11 items-center justify-center rounded-lg bg-white px-5 font-display text-[16px] font-medium text-black transition hover:bg-brand-bg-light"
+          className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-white px-5 font-display text-[16px] font-medium text-black transition hover:bg-brand-bg-light"
         >
           Sell
         </Link>
