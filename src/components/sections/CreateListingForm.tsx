@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { useActionState } from "react";
 import {
   type CreateListingState,
@@ -9,6 +9,7 @@ import {
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
+import { useAutoDetectListingAttrs } from "@/components/forms/useAutoDetectListingAttrs";
 import { DISCOUNT_MAX_HOURS } from "@/lib/discount";
 import type { Game } from "@/types";
 
@@ -19,6 +20,16 @@ export function CreateListingForm({ games }: { games: Game[] }) {
     createListing,
     initialState,
   );
+  const {
+    platform,
+    region,
+    setPlatform,
+    setRegion,
+    detecting,
+    titleRef,
+    descriptionRef,
+    onAutoDetectBlur,
+  } = useAutoDetectListingAttrs();
 
   return (
     <form
@@ -51,8 +62,10 @@ export function CreateListingForm({ games }: { games: Game[] }) {
 
       <Field label="Title">
         <input
+          ref={titleRef}
           name="title"
           required
+          onBlur={onAutoDetectBlur}
           placeholder="e.g. 20M Valorant account with all agents"
           className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
         />
@@ -60,28 +73,42 @@ export function CreateListingForm({ games }: { games: Game[] }) {
 
       <Field label="Description">
         <textarea
+          ref={descriptionRef}
           name="description"
           rows={6}
+          onBlur={onAutoDetectBlur}
           placeholder="Explain what's on the account — unlocked agents, rank, warnings, anything the buyer should know."
           className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Platform">
-          <input
-            name="platform"
-            placeholder="e.g. PC, PS5, Xbox, Mobile"
-            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
-          />
-        </Field>
-        <Field label="Region">
-          <input
-            name="region"
-            placeholder="e.g. NA, EU, Asia, Global"
-            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
-          />
-        </Field>
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Platform">
+            <input
+              name="platform"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              placeholder="e.g. PC, PS5, Xbox, Mobile"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+            />
+          </Field>
+          <Field label="Region">
+            <input
+              name="region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="e.g. NA, EU, Asia, Global"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+            />
+          </Field>
+        </div>
+        {detecting ? (
+          <span className="flex items-center gap-2 font-display text-[12px] font-medium text-brand-text-secondary-light">
+            <Sparkles className="h-3.5 w-3.5 animate-pulse text-brand-accent" strokeWidth={1.75} />
+            Detecting platform and region from your title and description…
+          </span>
+        ) : null}
       </div>
 
       <Field label="Screenshots (optional)">

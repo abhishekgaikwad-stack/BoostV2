@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import {
   type UpdateListingState,
@@ -8,6 +9,7 @@ import {
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
+import { useAutoDetectListingAttrs } from "@/components/forms/useAutoDetectListingAttrs";
 import type { AccountCredentials } from "@/lib/credentials";
 import { DISCOUNT_MAX_HOURS, isDiscountActive } from "@/lib/discount";
 import { formatDiscountCountdown } from "@/lib/utils";
@@ -39,6 +41,19 @@ export function EditListingForm({
     updateListing.bind(null, listing.id),
     initialState,
   );
+  const {
+    platform,
+    region,
+    setPlatform,
+    setRegion,
+    detecting,
+    titleRef,
+    descriptionRef,
+    onAutoDetectBlur,
+  } = useAutoDetectListingAttrs({
+    platform: listing.platform,
+    region: listing.region,
+  });
 
   return (
     <form
@@ -59,39 +74,53 @@ export function EditListingForm({
 
       <Field label="Title">
         <input
+          ref={titleRef}
           name="title"
           required
           defaultValue={listing.title}
+          onBlur={onAutoDetectBlur}
           className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
         />
       </Field>
 
       <Field label="Description">
         <textarea
+          ref={descriptionRef}
           name="description"
           rows={6}
           defaultValue={listing.description ?? ""}
+          onBlur={onAutoDetectBlur}
           className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light focus:outline-none"
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Platform">
-          <input
-            name="platform"
-            defaultValue={listing.platform ?? ""}
-            placeholder="e.g. PC, PS5, Xbox, Mobile"
-            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
-          />
-        </Field>
-        <Field label="Region">
-          <input
-            name="region"
-            defaultValue={listing.region ?? ""}
-            placeholder="e.g. NA, EU, Asia, Global"
-            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
-          />
-        </Field>
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Platform">
+            <input
+              name="platform"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              placeholder="e.g. PC, PS5, Xbox, Mobile"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+            />
+          </Field>
+          <Field label="Region">
+            <input
+              name="region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="e.g. NA, EU, Asia, Global"
+              className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+            />
+          </Field>
+        </div>
+        {detecting ? (
+          <span className="flex items-center gap-2 font-display text-[12px] font-medium text-brand-text-secondary-light">
+            <Sparkles className="h-3.5 w-3.5 animate-pulse text-brand-accent" strokeWidth={1.75} />
+            Detecting platform and region from your title and description…
+          </span>
+        ) : null}
       </div>
 
       <Field label="Screenshots">
