@@ -1,20 +1,16 @@
 "use client";
 
-import { Icon } from "@iconify/react";
-import Image from "next/image";
 import { useState } from "react";
-import { paymentIcon } from "@/lib/images";
+import type { PaymentMethodSlug } from "@/components/sections/PaymentMethodSelector";
 import type { Account } from "@/types";
 
-const paymentMethods = [
-  { slug: "apple-pay", name: "Apple Pay" },
-  { slug: "google-pay", name: "Google Pay" },
-  { slug: "visa", name: "Visa" },
-  { slug: "mastercard", name: "Mastercard" },
-  { slug: "paypal", name: "PayPal" },
-];
-
-export function CheckoutSummary({ offer }: { offer: Account }) {
+export function CheckoutSummary({
+  offer,
+  selectedMethod,
+}: {
+  offer: Account;
+  selectedMethod: PaymentMethodSlug | null;
+}) {
   const [pending, setPending] = useState(false);
 
   const savings =
@@ -23,10 +19,12 @@ export function CheckoutSummary({ offer }: { offer: Account }) {
       : 0;
 
   async function handleProceedToPay() {
+    if (!selectedMethod) return;
     setPending(true);
     // TODO: replace stub with real payment flow.
     //   1. POST /api/checkout → create Stripe Checkout Session for `offer.id`
-    //      and the authed user; insert a PENDING row into `public.orders`.
+    //      with `payment_method_types: [selectedMethod]` for the authed user;
+    //      insert a PENDING row into `public.orders`.
     //   2. Redirect to `session.url`.
     //   3. /api/stripe/webhook flips the order to PAID on `checkout.session.completed`.
     // Requires migration `0006_orders.sql` and Stripe key wiring.
@@ -73,45 +71,17 @@ export function CheckoutSummary({ offer }: { offer: Account }) {
       <button
         type="button"
         onClick={handleProceedToPay}
-        disabled={pending}
-        className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[15px] font-medium text-black transition hover:brightness-95 disabled:opacity-60"
+        disabled={pending || !selectedMethod}
+        className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[15px] font-medium text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Loading…" : "Proceed to Pay"}
       </button>
 
-      <ul className="grid grid-cols-2 gap-3 text-brand-text-secondary-dark [&>li]:justify-center [&>li:last-child]:col-span-2">
-        <TrustItem icon="hugeicons:shield-02" label="14 Days Warranty" />
-        <TrustItem icon="hugeicons:flash" label="Instant Delivery" />
-        <TrustItem icon="hugeicons:question" label="24/7 Human Support" />
-      </ul>
-
-      <div className="flex items-center justify-between border-t border-brand-border-subtle pt-3">
-        {paymentMethods.map((method) => (
-          <span
-            key={method.slug}
-            className="relative inline-block h-8 w-[50px] overflow-hidden rounded-md bg-brand-bg-elevated"
-          >
-            <Image
-              src={paymentIcon(method.slug)}
-              alt={method.name}
-              fill
-              sizes="50px"
-              className="object-contain"
-            />
-          </span>
-        ))}
-      </div>
+      {!selectedMethod ? (
+        <p className="text-center font-display text-[12px] font-normal text-brand-text-secondary-dark">
+          Select a payment method to continue
+        </p>
+      ) : null}
     </aside>
-  );
-}
-
-function TrustItem({ icon, label }: { icon: string; label: string }) {
-  return (
-    <li className="flex items-center gap-2">
-      <Icon icon={icon} className="h-6 w-6 text-brand-accent" />
-      <span className="font-display text-[12px] font-normal leading-4 text-brand-text-primary-dark">
-        {label}
-      </span>
-    </li>
   );
 }
