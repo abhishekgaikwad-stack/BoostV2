@@ -189,9 +189,9 @@ export function InvoiceDocument({ order, buyer }: InvoiceInput) {
   const offer = order.offer;
   return (
     <Document
-      title={`Invoice ${order.transactionId}`}
+      title={`Invoice ${order.id}`}
       author="Boost"
-      subject={`Invoice for order ${order.transactionId}`}
+      subject={`Invoice for order ${order.id}`}
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
@@ -205,7 +205,7 @@ export function InvoiceDocument({ order, buyer }: InvoiceInput) {
           <View style={styles.invoiceMeta}>
             <Text style={styles.invoiceTitle}>Invoice</Text>
             <Text style={styles.invoiceMetaLine}>
-              No. {order.transactionId}
+              Order ID {order.id}
             </Text>
             <Text style={styles.invoiceMetaLine}>
               {formatDate(order.createdAt)}
@@ -242,6 +242,9 @@ export function InvoiceDocument({ order, buyer }: InvoiceInput) {
               {paymentMethodLabel[order.paymentMethod] ?? order.paymentMethod}
             </Text>
             <Text style={styles.colValueMuted}>{order.status}</Text>
+            <Text style={styles.colValueMuted}>
+              Txn {order.transactionId}
+            </Text>
           </View>
         </View>
 

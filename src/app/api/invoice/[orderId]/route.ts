@@ -44,7 +44,7 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="invoice-${order.transactionId}.pdf"`,
+      "Content-Disposition": `attachment; filename="invoice-${order.id}.pdf"`,
       "Cache-Control": "private, no-store",
     },
   });

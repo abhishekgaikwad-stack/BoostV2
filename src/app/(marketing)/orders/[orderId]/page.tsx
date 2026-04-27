@@ -73,6 +73,7 @@ export default async function OrderSuccessPage({
         ) : null}
 
         <dl className="flex flex-col gap-3 font-display text-[14px]">
+          <Row label="Order ID" value={order.id} mono />
           <Row label="Transaction ID" value={order.transactionId} mono />
           <Row label="Date" value={<LocalDate iso={order.createdAt} />} />
           <Row
@@ -93,7 +94,7 @@ export default async function OrderSuccessPage({
 
         <a
           href={`/api/invoice/${order.id}`}
-          download={`invoice-${order.transactionId}.pdf`}
+          download={`invoice-${order.id}.pdf`}
           className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-brand-border-light bg-white font-display text-[14px] font-medium text-brand-text-primary-light transition hover:bg-brand-bg-light"
         >
           <Download className="h-4 w-4" strokeWidth={1.75} />

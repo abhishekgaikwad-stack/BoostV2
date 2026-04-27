@@ -76,6 +76,7 @@ export default async function SaleDetailPage({
         ) : null}
 
         <dl className="flex flex-col gap-3 font-display text-[14px]">
+          <Row label="Order ID" value={sale.id} mono />
           <Row label="Transaction ID" value={sale.transactionId} mono />
           <Row label="Sold on" value={<LocalDate iso={sale.createdAt} />} />
           <Row

@@ -46,7 +46,7 @@ export function OrderListRow({
             <LocalDate iso={order.createdAt} format="date" /> ·{" "}
             {paymentMethodLabel[order.paymentMethod] ?? order.paymentMethod} ·{" "}
             <span className="font-mono text-[11px]">
-              {order.transactionId}
+              {order.id}
             </span>
           </p>
         </div>

@@ -47,8 +47,11 @@ export type Order = {
  */
 export type Sale = Order;
 
+// `id:order_number` aliases the user-facing short id to `id` in the result —
+// the rest of the app deals only with `Order.id` strings (e.g. `o-12345678`)
+// and never sees the internal UUID PK.
 const ORDER_SELECT = `
-  id, transaction_id, price_cents, payment_method, status, created_at,
+  id:order_number, transaction_id, price_cents, payment_method, status, created_at,
   account:accounts(
     id, title, images,
     game:games(id, slug, name),
@@ -109,14 +112,14 @@ async function getMyOrdersBy(
     .select(ORDER_SELECT)
     .eq(column, user.id)
     .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
+    .order("order_number", { ascending: false })
     .limit(limit + 1);
 
   if (cursor) {
     const payload = decodeCursor(cursor);
     if (payload) {
       query = query.or(
-        `created_at.lt.${payload.c},and(created_at.eq.${payload.c},id.lt.${payload.i})`,
+        `created_at.lt.${payload.c},and(created_at.eq.${payload.c},order_number.lt.${payload.i})`,
       );
     }
   }
@@ -156,7 +159,7 @@ export async function getMyOrder(orderId: string): Promise<Order | null> {
   const { data, error } = await supabase
     .from("orders")
     .select(ORDER_SELECT)
-    .eq("id", orderId)
+    .eq("order_number", orderId)
     .eq("buyer_id", user.id)
     .maybeSingle();
 
@@ -174,7 +177,7 @@ export async function getMySale(orderId: string): Promise<Sale | null> {
   const { data, error } = await supabase
     .from("orders")
     .select(ORDER_SELECT)
-    .eq("id", orderId)
+    .eq("order_number", orderId)
     .eq("seller_id", user.id)
     .maybeSingle();
 
@@ -205,7 +208,7 @@ async function getMyOrderForListingBy(
 
   const { data, error } = await supabase
     .from("orders")
-    .select("id, created_at, status")
+    .select("id:order_number, created_at, status")
     .eq(column, user.id)
     .eq("account_id", accountId)
     .order("created_at", { ascending: false })

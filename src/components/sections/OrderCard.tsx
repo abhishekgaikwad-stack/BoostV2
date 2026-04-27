@@ -42,7 +42,7 @@ export function OrderCard({ order }: { order: Order }) {
             Order ID
           </span>
           <span className="truncate font-mono text-[13px] text-brand-text-primary-light">
-            {order.transactionId}
+            {order.id}
           </span>
           <span
             className={`rounded-md px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.1em] ${statusTone[order.status]}`}
