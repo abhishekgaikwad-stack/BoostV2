@@ -32,7 +32,10 @@ public.profiles ──┐
     ├──── public.offer_reviews ─── public.accounts
     │
     │ (user) ▼
-    └──── public.wishlists      ─── public.accounts
+    ├──── public.wishlists      ─── public.accounts
+    │
+    │ (buyer) ▼
+    └──── public.orders         ─── public.accounts
 ```
 
 Money is stored as **integer cents**. Convert at the boundary
@@ -208,13 +211,51 @@ Access: `src/lib/wishlist.ts` (read helpers) and
 
 ---
 
+### `public.orders`
+
+One row per buyer→listing transaction. Created exclusively via the
+`place_order` RPC; no client-side INSERT path. See
+`db/migrations/0006_orders.sql`.
+
+| Column            | Type          | Notes                                                   |
+|-------------------|---------------|---------------------------------------------------------|
+| `id`              | `uuid` PK     | Default `gen_random_uuid()`                             |
+| `buyer_id`        | `uuid`        | FK → `auth.users.id`, on delete restrict                |
+| `seller_id`       | `uuid`        | FK → `auth.users.id`, on delete restrict (denormalized from `accounts.seller_id` so seller-side queries don't need a join) |
+| `account_id`      | `uuid`        | FK → `accounts.id`, on delete restrict                  |
+| `transaction_id`  | `text` UNIQUE | `txn_<hex>` (RPC-generated). Replaced by Stripe IDs once payment is wired. |
+| `price_cents`     | `integer`     | Snapshot of the price actually paid (honors active flash discount at order time). |
+| `payment_method`  | `text`        | CHECK ∈ `apple-pay`, `google-pay`, `visa`, `mastercard`, `paypal`. |
+| `status`          | `text`        | CHECK ∈ `PENDING`, `PAID`, `DELIVERED`, `REFUNDED`. Default `PAID` for the current stub flow. |
+| `created_at`      | `timestamptz` | Default `now()`                                         |
+
+Indexing:
+- `idx_orders_buyer_created` on `(buyer_id, created_at DESC)` — covers the
+  buyer's order history.
+- `idx_orders_seller_created` on `(seller_id, created_at DESC)` — covers the
+  seller's sales feed.
+
+RLS:
+- `orders_select_buyer`: `buyer_id = auth.uid()`.
+- `orders_select_seller`: `seller_id = auth.uid()`.
+- No INSERT/UPDATE/DELETE policies — every write goes through `place_order`
+  (security definer).
+- A companion policy `accounts_select_buyer` on `accounts` lets the buyer
+  read the listing they purchased once it flips to SOLD (the default
+  `accounts_select_public` would otherwise hide it).
+
+Access: `src/lib/orders.ts` (`getMyOrder`) and `src/lib/orders-actions.ts`
+(`placeOrder`).
+
+---
+
 ## 3. Enums / status values
 
 Implemented either as a Postgres enum or as a CHECK-constrained text column
 (both work for our code, which uses string literals).
 
 - `AccountStatus`: `AVAILABLE` | `RESERVED` | `SOLD`
-- `OrderStatus` (planned, not yet live): `PENDING` | `PAID` | `DELIVERED` | `REFUNDED`
+- `OrderStatus`: `PENDING` | `PAID` | `DELIVERED` | `REFUNDED` (live as a CHECK on `orders.status`).
 - `Role` (planned, not yet live): `USER` | `ADMIN`
 
 ---
@@ -248,6 +289,25 @@ Atomic bulk insert used by the CSV upload flow. All rows succeed or none do.
 If you see `Could not find the function public.create_listings_bulk` at
 runtime, the function is missing from the database — reapply the SQL in the
 Supabase SQL editor.
+
+### `public.place_order(p_account_id uuid, p_payment_method text)`
+
+Atomic checkout: validates the listing is `AVAILABLE`, snapshots the
+effective price (honoring an active flash discount), inserts an `orders`
+row as `PAID`, and flips `accounts.status` to `SOLD` so a second buyer
+can't reach the same row. Generates `transaction_id` server-side as
+`txn_<hex>` via `gen_random_bytes`.
+
+**Input:** `p_account_id` UUID, `p_payment_method` text (one of the five
+allowed payment slugs).
+
+**Returns:** single-row table `(order_id uuid, transaction_id text)`.
+
+**Errors raised:** `Not authenticated`, `Invalid payment method`,
+`Listing not found`, `Listing is not available`, `Cannot buy your own
+listing`. The server action surfaces these strings as-is.
+
+**Called from:** `src/lib/orders-actions.ts::placeOrder`.
 
 ---
 
@@ -335,8 +395,10 @@ re-encrypt with new). No helper exists for that yet.
 
 ## 10. Known gaps / TODO
 
-- **Orders table** — no `orders` / payment-status table exists yet. Stripe
-  integration in `src/lib/stripe.ts` is scaffolding.
+- **Real payment processor** — `place_order` currently inserts orders as
+  `PAID` immediately for the stub flow. Stripe Checkout Session creation,
+  webhook verification, and the `PENDING → PAID` transition still need to
+  be wired. `src/lib/stripe.ts` is scaffolding.
 - **Credential delivery flow** — reading credentials as a buyer post-purchase
   is not yet wired; currently only the seller can read their own row.
 - **Admin role** — no `role` column on `profiles` yet; admin tooling is
