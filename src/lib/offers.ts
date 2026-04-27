@@ -28,6 +28,8 @@ export type AccountRow = {
   discount_ends_at: string | null;
   images: string[];
   status: "AVAILABLE" | "RESERVED" | "SOLD";
+  platform: string | null;
+  region: string | null;
   offer_ends_at: string | null;
   created_at: string;
   game: GameRow;
@@ -37,7 +39,7 @@ export type AccountRow = {
 export const ACCOUNT_SELECT = `
   id, title, description,
   price, old_price, discount_price, discount_ends_at,
-  images, status, offer_ends_at, created_at,
+  images, status, platform, region, offer_ends_at, created_at,
   game:games(id, slug, name, subtitle, cover),
   seller:profiles(id, name, avatar_url, store_id)
 `;
@@ -79,6 +81,8 @@ export function toAccount(row: AccountRow): Account {
     discountEndsAt: discountActive ? row.discount_ends_at! : undefined,
     images: row.images ?? [],
     status: row.status,
+    platform: row.platform ?? undefined,
+    region: row.region ?? undefined,
   };
 }
 

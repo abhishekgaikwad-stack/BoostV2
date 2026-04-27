@@ -39,6 +39,10 @@ export async function createListing(
   const description = rawDescription && rawDescription.length > 0 ? rawDescription : null;
   const priceRaw = formData.get("price")?.toString();
   const oldPriceRaw = formData.get("oldPrice")?.toString();
+  const rawPlatform = formData.get("platform")?.toString().trim();
+  const platform = rawPlatform && rawPlatform.length > 0 ? rawPlatform : null;
+  const rawRegion = formData.get("region")?.toString().trim();
+  const region = rawRegion && rawRegion.length > 0 ? rawRegion : null;
   // formData.getAll returns every <input name="images"> we rendered — these
   // were already uploaded client-side via presigned PUTs, so we just persist
   // the URLs. Cap at 10 as a belt-and-braces check against tampering.
@@ -82,6 +86,8 @@ export async function createListing(
       seller_id: user.id,
       title,
       description,
+      platform,
+      region,
       price,
       old_price: oldPrice,
       discount_price: discountResult.discount_price,

@@ -14,10 +14,13 @@ export type OrderRow = {
   payment_method: string;
   status: OrderStatus;
   created_at: string;
+  revealed_at: string | null;
   account: {
     id: string;
     title: string;
     images: string[] | null;
+    platform: string | null;
+    region: string | null;
     game: { id: string; slug: string; name: string };
     seller: { name: string | null; store_id: number | null } | null;
   } | null;
@@ -30,10 +33,14 @@ export type Order = {
   paymentMethod: string;
   status: OrderStatus;
   createdAt: string;
+  /** ISO timestamp of the first credential reveal (null if never revealed). */
+  revealedAt: string | null;
   offer: {
     id: string;
     title: string;
     image: string | null;
+    platform: string | null;
+    region: string | null;
     game: { slug: string; name: string };
     seller: { name: string; storeId: number | null };
   } | null;
@@ -51,9 +58,9 @@ export type Sale = Order;
 // the rest of the app deals only with `Order.id` strings (e.g. `o-12345678`)
 // and never sees the internal UUID PK.
 const ORDER_SELECT = `
-  id:order_number, transaction_id, price_cents, payment_method, status, created_at,
+  id:order_number, transaction_id, price_cents, payment_method, status, created_at, revealed_at,
   account:accounts(
-    id, title, images,
+    id, title, images, platform, region,
     game:games(id, slug, name),
     seller:profiles(name, store_id)
   )
@@ -67,11 +74,14 @@ function toOrder(row: OrderRow): Order {
     paymentMethod: row.payment_method,
     status: row.status,
     createdAt: row.created_at,
+    revealedAt: row.revealed_at ?? null,
     offer: row.account
       ? {
           id: row.account.id,
           title: row.account.title,
           image: row.account.images?.[0] ?? null,
+          platform: row.account.platform ?? null,
+          region: row.account.region ?? null,
           game: {
             slug: row.account.game.slug,
             name: row.account.game.name,

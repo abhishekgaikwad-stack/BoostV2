@@ -2,6 +2,7 @@ import { ArrowLeft, Check, Download } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RevealOrderDetailsButton } from "@/components/sections/RevealOrderDetailsButton";
 import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import { getMyOrder } from "@/lib/orders";
@@ -91,6 +92,8 @@ export default async function OrderSuccessPage({
             €{order.price.toFixed(2)}
           </span>
         </div>
+
+        <RevealOrderDetailsButton order={order} />
 
         <a
           href={`/api/invoice/${order.id}`}

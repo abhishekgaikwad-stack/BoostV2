@@ -29,6 +29,8 @@ export type Account = {
   discountEndsAt?: string;
   images?: string[];
   status: "AVAILABLE" | "RESERVED" | "SOLD";
+  platform?: string;
+  region?: string;
 };
 
 export type Seller = {

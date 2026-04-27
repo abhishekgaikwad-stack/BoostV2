@@ -46,6 +46,10 @@ export async function updateListing(
   const rawDescription = formData.get("description")?.toString().trim();
   const description =
     rawDescription && rawDescription.length > 0 ? rawDescription : null;
+  const rawPlatform = formData.get("platform")?.toString().trim();
+  const platform = rawPlatform && rawPlatform.length > 0 ? rawPlatform : null;
+  const rawRegion = formData.get("region")?.toString().trim();
+  const region = rawRegion && rawRegion.length > 0 ? rawRegion : null;
   const priceRaw = formData.get("price")?.toString();
   const oldPriceRaw = formData.get("oldPrice")?.toString();
 
@@ -85,6 +89,8 @@ export async function updateListing(
   const updatePayload: Record<string, unknown> = {
     title,
     description,
+    platform,
+    region,
     price,
     old_price: oldPrice,
     images,

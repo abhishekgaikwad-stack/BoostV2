@@ -67,6 +67,23 @@ export function CreateListingForm({ games }: { games: Game[] }) {
         />
       </Field>
 
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Platform">
+          <input
+            name="platform"
+            placeholder="e.g. PC, PS5, Xbox, Mobile"
+            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+          />
+        </Field>
+        <Field label="Region">
+          <input
+            name="region"
+            placeholder="e.g. NA, EU, Asia, Global"
+            className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+          />
+        </Field>
+      </div>
+
       <Field label="Screenshots (optional)">
         <ImageUploader name="images" />
       </Field>

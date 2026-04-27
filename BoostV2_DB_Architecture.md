@@ -113,6 +113,8 @@ historical ("accounts" the product, not a user account).
 | `discount_ends_at`| `timestamptz`             | Nullable; when set, pairs with `discount_price` (CHECK constraint).|
 | `images`          | `text[]`                  | Array of public S3 URLs. Server filters to `https://` prefix and slices to 10. |
 | `status`          | enum-as-text              | `AVAILABLE` \| `RESERVED` \| `SOLD`. Defaults to `AVAILABLE`.       |
+| `platform`        | `text`                    | Free-text qualifier (e.g. `PC`, `PS5`). Nullable. Buyer confirms it pre-reveal. |
+| `region`          | `text`                    | Free-text qualifier (e.g. `NA`, `EU`). Nullable. Buyer confirms it pre-reveal. |
 | `offer_ends_at`   | `timestamptz`             | Optional countdown deadline (legacy, not exposed in seller forms). |
 | `created_at`      | `timestamptz`             | Default `now()`                                                    |
 
@@ -228,6 +230,7 @@ One row per buyer→listing transaction. Created exclusively via the
 | `price_cents`     | `integer`     | Snapshot of the price actually paid (honors active flash discount at order time). |
 | `payment_method`  | `text`        | CHECK ∈ `apple-pay`, `google-pay`, `visa`, `mastercard`, `paypal`. |
 | `status`          | `text`        | CHECK ∈ `PENDING`, `PAID`, `DELIVERED`, `REFUNDED`. Default `PAID` for the current stub flow. |
+| `revealed_at`     | `timestamptz` | Nullable; set on first credential reveal. Drives the buyer-detail page button label "Reveal" → "View" after reveal. |
 | `created_at`      | `timestamptz` | Default `now()`                                         |
 
 Indexing:
@@ -312,6 +315,25 @@ where `order_id` is the public `order_number` (used in URLs and UI).
 listing`. The server action surfaces these strings as-is.
 
 **Called from:** `src/lib/orders-actions.ts::placeOrder`.
+
+### `public.reveal_credentials(p_order_number text)`
+
+Buyer-side credential reveal. Verifies the caller is the buyer of the
+order, reads the encrypted ciphertext from `credentials` (bypassing the
+seller-only RLS), flips `orders.revealed_at` on first call, and returns
+the ciphertext so the Node-side action can decrypt it. Plaintext never
+touches plpgsql or the DB layer.
+
+**Input:** `p_order_number` text (the user-facing order id, e.g.
+`o-12345678`).
+
+**Returns:** single-row table `(encrypted_data text,
+was_already_revealed boolean)`.
+
+**Errors raised:** `Not authenticated`, `Order not found`,
+`No credentials available for this listing`.
+
+**Called from:** `src/lib/orders-reveal.ts::revealOrderCredentials`.
 
 ---
 
@@ -403,8 +425,11 @@ re-encrypt with new). No helper exists for that yet.
   `PAID` immediately for the stub flow. Stripe Checkout Session creation,
   webhook verification, and the `PENDING → PAID` transition still need to
   be wired. `src/lib/stripe.ts` is scaffolding.
-- **Credential delivery flow** — reading credentials as a buyer post-purchase
-  is not yet wired; currently only the seller can read their own row.
+- **Credential delivery beyond reveal** — `reveal_credentials` (migration
+  0010) lets the buyer decrypt the listing's stored credentials after
+  confirming platform + region. Future work: reveal-once-with-receipt
+  audit log, credential rotation by seller post-sale, and dispute
+  flow if the buyer reports the credentials don't match.
 - **Admin role** — no `role` column on `profiles` yet; admin tooling is
   out-of-band.
 - **Migrations** — `db/migrations/` is a plain SQL folder applied by hand.

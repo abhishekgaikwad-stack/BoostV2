@@ -12,6 +12,8 @@ type ListingRow = {
   id: string;
   title: string;
   description: string | null;
+  platform: string | null;
+  region: string | null;
   price: number;
   old_price: number | null;
   discount_price: number | null;
@@ -38,7 +40,7 @@ export default async function EditListingPage({
   const { data, error } = await supabase
     .from("accounts")
     .select(
-      "id, title, description, price, old_price, discount_price, discount_ends_at, images, seller_id, status, game:games(slug, name)",
+      "id, title, description, platform, region, price, old_price, discount_price, discount_ends_at, images, seller_id, status, game:games(slug, name)",
     )
     .eq("id", offerId)
     .maybeSingle();
@@ -61,6 +63,8 @@ export default async function EditListingPage({
     id: row.id,
     title: row.title,
     description: row.description,
+    platform: row.platform,
+    region: row.region,
     price: row.price,
     oldPrice: row.old_price,
     discountPrice: row.discount_price,
