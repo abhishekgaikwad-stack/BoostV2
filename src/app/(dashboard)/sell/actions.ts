@@ -6,6 +6,7 @@ import {
   credentialsFromFormData,
   saveCredentials,
 } from "@/lib/credentials";
+import { checkLimit } from "@/lib/listing-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_CAP_CENTS, PRICE_MAX_EUR } from "@/lib/utils";
 import { parseDiscountFromFormData } from "@/lib/discount";
@@ -55,6 +56,19 @@ export async function createListing(
   if (!gameId) return { error: "Please select a game." };
   if (!title) return { error: "Title is required." };
 
+  const creds = credentialsFromFormData(formData);
+  const lengthError =
+    checkLimit("title", title) ??
+    checkLimit("description", description) ??
+    checkLimit("platform", platform) ??
+    checkLimit("region", region) ??
+    checkLimit("credLogin", creds.login) ??
+    checkLimit("credPassword", creds.password) ??
+    checkLimit("credEmail", creds.email) ??
+    checkLimit("credEmailPassword", creds.emailPassword) ??
+    checkLimit("credNotes", creds.notes);
+  if (lengthError) return { error: lengthError };
+
   const priceFloat = Number.parseFloat(priceRaw ?? "");
   if (!Number.isFinite(priceFloat) || priceFloat < 0) {
     return { error: "Selling price must be a positive number." };
@@ -102,11 +116,8 @@ export async function createListing(
 
   // Encrypt-and-save credentials in the same request so the seller doesn't
   // have to hop to an edit page to finish setting up. No-op when empty.
-  const credentialsResult = await saveCredentials(
-    data.id,
-    user.id,
-    credentialsFromFormData(formData),
-  );
+  // Lengths were validated above before the listing was inserted.
+  const credentialsResult = await saveCredentials(data.id, user.id, creds);
   if (credentialsResult.error) {
     // Listing already created; surface the credential error so the seller
     // knows to retry from the edit page.

@@ -1,4 +1,5 @@
 import Papa from "papaparse";
+import { LISTING_LIMITS } from "@/lib/listing-limits";
 import { PRICE_MAX_EUR } from "@/lib/utils";
 
 // Headers the parser will accept. `platform` and `region` are *optional* —
@@ -137,7 +138,37 @@ export function parseBulkCsv(
     }
     const title = get("title");
     if (!title) errors.push("title is required");
-    if (title.length > 255) errors.push("title is too long (max 255)");
+    if (title.length > LISTING_LIMITS.title) {
+      errors.push(`title cannot exceed ${LISTING_LIMITS.title} characters`);
+    }
+    const description = get("description");
+    if (description.length > LISTING_LIMITS.description) {
+      errors.push(
+        `description cannot exceed ${LISTING_LIMITS.description} characters`,
+      );
+    }
+    const platform = get("platform");
+    if (platform.length > LISTING_LIMITS.platform) {
+      errors.push(
+        `platform cannot exceed ${LISTING_LIMITS.platform} characters`,
+      );
+    }
+    const region = get("region");
+    if (region.length > LISTING_LIMITS.region) {
+      errors.push(`region cannot exceed ${LISTING_LIMITS.region} characters`);
+    }
+    const credLengthChecks: Array<[keyof typeof LISTING_LIMITS, string, string]> = [
+      ["credLogin", "cred_login", get("cred_login")],
+      ["credPassword", "cred_password", get("cred_password")],
+      ["credEmail", "cred_email", get("cred_email")],
+      ["credEmailPassword", "cred_email_password", get("cred_email_password")],
+      ["credNotes", "cred_notes", get("cred_notes")],
+    ];
+    for (const [key, label, value] of credLengthChecks) {
+      if (value.length > LISTING_LIMITS[key]) {
+        errors.push(`${label} cannot exceed ${LISTING_LIMITS[key]} characters`);
+      }
+    }
 
     const priceRaw = get("price_eur");
     const priceNum = Number.parseFloat(priceRaw);

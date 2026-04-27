@@ -5,6 +5,7 @@ import {
   credentialsFromFormData,
   saveCredentials,
 } from "@/lib/credentials";
+import { checkLimit } from "@/lib/listing-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_CAP_CENTS, PRICE_MAX_EUR } from "@/lib/utils";
 import { isDiscountActive, parseDiscountFromFormData } from "@/lib/discount";
@@ -54,6 +55,19 @@ export async function updateListing(
   const oldPriceRaw = formData.get("oldPrice")?.toString();
 
   if (!title) return { error: "Title is required." };
+
+  const creds = credentialsFromFormData(formData);
+  const lengthError =
+    checkLimit("title", title) ??
+    checkLimit("description", description) ??
+    checkLimit("platform", platform) ??
+    checkLimit("region", region) ??
+    checkLimit("credLogin", creds.login) ??
+    checkLimit("credPassword", creds.password) ??
+    checkLimit("credEmail", creds.email) ??
+    checkLimit("credEmailPassword", creds.emailPassword) ??
+    checkLimit("credNotes", creds.notes);
+  if (lengthError) return { error: lengthError };
 
   const priceFloat = Number.parseFloat(priceRaw ?? "");
   if (!Number.isFinite(priceFloat) || priceFloat < 0) {
@@ -110,11 +124,7 @@ export async function updateListing(
     .eq("id", offerId);
   if (updateError) return { error: updateError.message };
 
-  const credsResult = await saveCredentials(
-    offerId,
-    user.id,
-    credentialsFromFormData(formData),
-  );
+  const credsResult = await saveCredentials(offerId, user.id, creds);
   if (credsResult.error) return { error: credsResult.error };
 
   revalidatePath(`/user/currently-selling/${offerId}`);

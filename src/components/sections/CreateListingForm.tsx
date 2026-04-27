@@ -6,11 +6,13 @@ import {
   type CreateListingState,
   createListing,
 } from "@/app/(dashboard)/sell/actions";
+import { CharCounter, useCharLength } from "@/components/forms/CharCounter";
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
 import { useAutoDetectListingAttrs } from "@/components/forms/useAutoDetectListingAttrs";
 import { DISCOUNT_MAX_HOURS } from "@/lib/discount";
+import { LISTING_LIMITS } from "@/lib/listing-limits";
 import type { Game } from "@/types";
 
 const initialState: CreateListingState = {};
@@ -30,6 +32,8 @@ export function CreateListingForm({ games }: { games: Game[] }) {
     descriptionRef,
     onAutoDetectBlur,
   } = useAutoDetectListingAttrs();
+  const titleLength = useCharLength(titleRef);
+  const descriptionLength = useCharLength(descriptionRef);
 
   return (
     <form
@@ -69,6 +73,7 @@ export function CreateListingForm({ games }: { games: Game[] }) {
           placeholder="e.g. 20M Valorant account with all agents"
           className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
         />
+        <CharCounter length={titleLength} max={LISTING_LIMITS.title} />
       </Field>
 
       <Field label="Description">
@@ -80,6 +85,7 @@ export function CreateListingForm({ games }: { games: Game[] }) {
           placeholder="Explain what's on the account — unlocked agents, rank, warnings, anything the buyer should know."
           className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
         />
+        <CharCounter length={descriptionLength} max={LISTING_LIMITS.description} />
       </Field>
 
       <div className="flex flex-col gap-2">
@@ -92,6 +98,7 @@ export function CreateListingForm({ games }: { games: Game[] }) {
               placeholder="e.g. PC, PS5, Xbox, Mobile"
               className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
             />
+            <CharCounter length={platform.length} max={LISTING_LIMITS.platform} />
           </Field>
           <Field label="Region">
             <input
@@ -101,6 +108,7 @@ export function CreateListingForm({ games }: { games: Game[] }) {
               placeholder="e.g. NA, EU, Asia, Global"
               className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
             />
+            <CharCounter length={region.length} max={LISTING_LIMITS.region} />
           </Field>
         </div>
         {detecting ? (

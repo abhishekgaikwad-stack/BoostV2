@@ -6,12 +6,14 @@ import {
   type UpdateListingState,
   updateListing,
 } from "@/app/(dashboard)/user/currently-selling/[offerId]/actions";
+import { CharCounter, useCharLength } from "@/components/forms/CharCounter";
 import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
 import { useAutoDetectListingAttrs } from "@/components/forms/useAutoDetectListingAttrs";
 import type { AccountCredentials } from "@/lib/credentials";
 import { DISCOUNT_MAX_HOURS, isDiscountActive } from "@/lib/discount";
+import { LISTING_LIMITS } from "@/lib/listing-limits";
 import { formatDiscountCountdown } from "@/lib/utils";
 
 const initialState: UpdateListingState = {};
@@ -54,6 +56,8 @@ export function EditListingForm({
     platform: listing.platform,
     region: listing.region,
   });
+  const titleLength = useCharLength(titleRef);
+  const descriptionLength = useCharLength(descriptionRef);
 
   return (
     <form
@@ -81,6 +85,7 @@ export function EditListingForm({
           onBlur={onAutoDetectBlur}
           className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light focus:outline-none"
         />
+        <CharCounter length={titleLength} max={LISTING_LIMITS.title} />
       </Field>
 
       <Field label="Description">
@@ -92,6 +97,7 @@ export function EditListingForm({
           onBlur={onAutoDetectBlur}
           className="w-full resize-y rounded-xl bg-brand-bg-pill p-4 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light focus:outline-none"
         />
+        <CharCounter length={descriptionLength} max={LISTING_LIMITS.description} />
       </Field>
 
       <div className="flex flex-col gap-2">
@@ -104,6 +110,7 @@ export function EditListingForm({
               placeholder="e.g. PC, PS5, Xbox, Mobile"
               className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
             />
+            <CharCounter length={platform.length} max={LISTING_LIMITS.platform} />
           </Field>
           <Field label="Region">
             <input
@@ -113,6 +120,7 @@ export function EditListingForm({
               placeholder="e.g. NA, EU, Asia, Global"
               className="h-12 w-full rounded-xl bg-brand-bg-pill px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
             />
+            <CharCounter length={region.length} max={LISTING_LIMITS.region} />
           </Field>
         </div>
         {detecting ? (

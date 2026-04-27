@@ -1,8 +1,10 @@
 "use client";
 
 import { Eye, EyeOff, Lock } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { CharCounter, useCharLength } from "@/components/forms/CharCounter";
 import type { AccountCredentials } from "@/lib/credentials";
+import { LISTING_LIMITS } from "@/lib/listing-limits";
 
 type Props = {
   initial?: AccountCredentials | null;
@@ -50,38 +52,31 @@ export function CredentialsFieldset({ initial }: Props) {
           name="cred_login"
           label="Login / username"
           defaultValue={initial?.login ?? ""}
+          max={LISTING_LIMITS.credLogin}
         />
         <Input
           name="cred_password"
           label="Password"
           type={pwType}
           defaultValue={initial?.password ?? ""}
+          max={LISTING_LIMITS.credPassword}
         />
         <Input
           name="cred_email"
           label="Email"
           defaultValue={initial?.email ?? ""}
+          max={LISTING_LIMITS.credEmail}
         />
         <Input
           name="cred_email_password"
           label="Email password"
           type={pwType}
           defaultValue={initial?.emailPassword ?? ""}
+          max={LISTING_LIMITS.credEmailPassword}
         />
       </div>
 
-      <label className="flex flex-col gap-2">
-        <span className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
-          Notes for the buyer
-        </span>
-        <textarea
-          name="cred_notes"
-          rows={3}
-          defaultValue={initial?.notes ?? ""}
-          placeholder="Backup codes, recovery phrases, anything the buyer needs to know."
-          className="w-full resize-y rounded-xl bg-white px-4 py-3 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
-        />
-      </label>
+      <NotesField initial={initial?.notes ?? ""} />
     </section>
   );
 }
@@ -91,18 +86,23 @@ function Input({
   label,
   type = "text",
   defaultValue,
+  max,
 }: {
   name: string;
   label: string;
   type?: string;
   defaultValue?: string;
+  max: number;
 }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const length = useCharLength(ref);
   return (
     <label className="flex flex-col gap-2">
       <span className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
         {label}
       </span>
       <input
+        ref={ref}
         type={type}
         name={name}
         defaultValue={defaultValue}
@@ -110,6 +110,28 @@ function Input({
         spellCheck={false}
         className="h-11 w-full rounded-xl bg-white px-4 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
       />
+      <CharCounter length={length} max={max} />
+    </label>
+  );
+}
+
+function NotesField({ initial }: { initial: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const length = useCharLength(ref);
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
+        Notes for the buyer
+      </span>
+      <textarea
+        ref={ref}
+        name="cred_notes"
+        rows={3}
+        defaultValue={initial}
+        placeholder="Backup codes, recovery phrases, anything the buyer needs to know."
+        className="w-full resize-y rounded-xl bg-white px-4 py-3 font-display text-[13px] font-medium leading-5 text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
+      />
+      <CharCounter length={length} max={LISTING_LIMITS.credNotes} />
     </label>
   );
 }

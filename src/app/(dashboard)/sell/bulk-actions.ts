@@ -5,6 +5,7 @@ import { detectListingAttrs } from "@/lib/ai-detect";
 import type { AccountCredentials } from "@/lib/credentials";
 import { BULK_MAX_ROWS, type BulkListingRow } from "@/lib/csv";
 import { encrypt } from "@/lib/encryption";
+import { LISTING_LIMITS } from "@/lib/listing-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_MAX_EUR } from "@/lib/utils";
 
@@ -88,6 +89,29 @@ export async function createBulkListings(
         return {
           ok: false,
           error: `Row ${i + 2}: old price must be >= price.`,
+        };
+      }
+    }
+    const lengthChecks: Array<[string, string | undefined, number]> = [
+      ["title", r.title, LISTING_LIMITS.title],
+      ["description", r.description, LISTING_LIMITS.description],
+      ["platform", r.platform, LISTING_LIMITS.platform],
+      ["region", r.region, LISTING_LIMITS.region],
+      ["cred_login", r.credLogin, LISTING_LIMITS.credLogin],
+      ["cred_password", r.credPassword, LISTING_LIMITS.credPassword],
+      ["cred_email", r.credEmail, LISTING_LIMITS.credEmail],
+      [
+        "cred_email_password",
+        r.credEmailPassword,
+        LISTING_LIMITS.credEmailPassword,
+      ],
+      ["cred_notes", r.credNotes, LISTING_LIMITS.credNotes],
+    ];
+    for (const [name, value, max] of lengthChecks) {
+      if (value && value.length > max) {
+        return {
+          ok: false,
+          error: `Row ${i + 2}: ${name} cannot exceed ${max} characters.`,
         };
       }
     }
