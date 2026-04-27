@@ -1,7 +1,25 @@
 import Papa from "papaparse";
 import { PRICE_MAX_EUR } from "@/lib/utils";
 
+// Headers the parser will accept. `platform` and `region` are *optional* —
+// CSVs from before they existed still parse, and rows that leave them blank
+// are passed to the AI auto-detect step in the bulk action.
 export const BULK_HEADERS = [
+  "game_slug",
+  "title",
+  "description",
+  "platform",
+  "region",
+  "price_eur",
+  "old_price_eur",
+  "cred_login",
+  "cred_password",
+  "cred_email",
+  "cred_email_password",
+  "cred_notes",
+] as const;
+
+const REQUIRED_BULK_HEADERS: ReadonlyArray<(typeof BULK_HEADERS)[number]> = [
   "game_slug",
   "title",
   "description",
@@ -12,13 +30,15 @@ export const BULK_HEADERS = [
   "cred_email",
   "cred_email_password",
   "cred_notes",
-] as const;
+];
 
 export const BULK_MAX_ROWS = 500;
 
 export type BulkListingRow = {
   title: string;
   description?: string;
+  platform?: string;
+  region?: string;
   priceEur: number;
   oldPriceEur?: number;
   credLogin?: string;
@@ -55,6 +75,8 @@ export function buildTemplateCsv(gameSlug: string): string {
           gameSlug,
           "Example — 20M Valorant account (delete this row)",
           "Describe the account: agents, rank, warnings, anything the buyer should know.",
+          "PC", // platform — leave blank to let auto-detect fill from title/description
+          "NA", // region — leave blank to let auto-detect fill from title/description
           "40.20",
           "80.40",
           "",
@@ -85,7 +107,7 @@ export function parseBulkCsv(
   });
 
   const headers = parsed.meta.fields ?? [];
-  const missing = BULK_HEADERS.filter((h) => !headers.includes(h));
+  const missing = REQUIRED_BULK_HEADERS.filter((h) => !headers.includes(h));
   if (missing.length > 0) {
     return {
       rows: [],
@@ -141,6 +163,8 @@ export function parseBulkCsv(
         ? {
             title,
             description: get("description") || undefined,
+            platform: get("platform") || undefined,
+            region: get("region") || undefined,
             priceEur: priceNum,
             oldPriceEur: oldPriceNum,
             credLogin: get("cred_login") || undefined,

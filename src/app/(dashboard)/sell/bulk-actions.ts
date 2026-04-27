@@ -1,11 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { detectListingAttrs } from "@/lib/ai-detect";
 import type { AccountCredentials } from "@/lib/credentials";
 import { BULK_MAX_ROWS, type BulkListingRow } from "@/lib/csv";
 import { encrypt } from "@/lib/encryption";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_MAX_EUR } from "@/lib/utils";
+
+// Concurrency cap for the AI fan-out — at 500-row max bulk uploads, fully
+// auto-detected runs would otherwise hammer Anthropic. 5 is conservative;
+// per-call latency ~500-1500ms.
+const DETECT_CONCURRENCY = 5;
 
 export type BulkResult =
   | { ok: true; createdIds: string[] }
@@ -87,9 +93,35 @@ export async function createBulkListings(
     }
   }
 
+  // For rows that left platform OR region blank, run Claude Haiku to extract
+  // them from title + description. Concurrent fan-out (capped) keeps total
+  // upload latency reasonable on big CSVs. Detection failures don't fail the
+  // bulk — they just leave the column null.
+  const detected: Array<{ platform?: string; region?: string }> = await runWithLimit(
+    rows.map((r) => async () => {
+      const havePlatform = r.platform && r.platform.trim().length > 0;
+      const haveRegion = r.region && r.region.trim().length > 0;
+      if (havePlatform && haveRegion) {
+        return { platform: r.platform, region: r.region };
+      }
+      const result = await detectListingAttrs({
+        title: r.title,
+        description: r.description ?? "",
+      });
+      if (!result.ok) {
+        return { platform: r.platform, region: r.region };
+      }
+      return {
+        platform: havePlatform ? r.platform : result.attrs.platform ?? undefined,
+        region: haveRegion ? r.region : result.attrs.region ?? undefined,
+      };
+    }),
+    DETECT_CONCURRENCY,
+  );
+
   // Build payload — encrypt each row's credentials up front, then hand off
   // an array of ciphertext blobs to the RPC.
-  const payload = rows.map((r) => {
+  const payload = rows.map((r, i) => {
     const creds: Partial<AccountCredentials> = {
       login: r.credLogin,
       password: r.credPassword,
@@ -105,6 +137,8 @@ export async function createBulkListings(
     return {
       title: r.title.trim(),
       description: r.description?.trim() ?? "",
+      platform: detected[i].platform?.trim() ?? "",
+      region: detected[i].region?.trim() ?? "",
       price: Math.round(r.priceEur * 100),
       old_price:
         r.oldPriceEur != null ? Math.round(r.oldPriceEur * 100) : null,
@@ -124,4 +158,28 @@ export async function createBulkListings(
   revalidatePath(`/games/${gameSlug}`);
 
   return { ok: true, createdIds: (data as string[] | null) ?? [] };
+}
+
+/**
+ * Runs an array of async tasks with a fixed concurrency cap, preserving the
+ * input order in the output. Used for the bulk AI detection fan-out.
+ */
+async function runWithLimit<T>(
+  tasks: Array<() => Promise<T>>,
+  limit: number,
+): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < tasks.length) {
+      const idx = cursor++;
+      results[idx] = await tasks[idx]();
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, tasks.length) }, () => worker()),
+  );
+  return results;
 }
