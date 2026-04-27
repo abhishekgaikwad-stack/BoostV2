@@ -12,9 +12,9 @@ import { assetUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 const sidebarNav = [
-  { id: "orders", label: "Orders", icon: ShoppingBag },
-  { id: "sell", label: "Sell", icon: Tag },
-  { id: "wishlist", label: "Wishlist", icon: Heart },
+  { id: "orders", label: "Orders", icon: ShoppingBag, href: "/user/orders" },
+  { id: "sell", label: "Sell", icon: Tag, href: "/sell" },
+  { id: "wishlist", label: "Wishlist", icon: Heart, href: "/wishlist" },
 ];
 
 export function SiteHeader() {
@@ -72,7 +72,7 @@ export function SiteHeader() {
           {sidebarNav.map((item) => (
             <Link
               key={item.id}
-              href={`/${item.id}`}
+              href={item.href}
               className="flex flex-col items-center gap-2"
             >
               <span
