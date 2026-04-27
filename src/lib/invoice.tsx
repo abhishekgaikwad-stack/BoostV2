@@ -22,13 +22,18 @@ const paymentMethodLabel: Record<string, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
+  // Server-generated PDFs need a stable timezone — pinning to UTC and
+  // labelling it explicitly avoids locale ambiguity for whoever opens
+  // the invoice later (tax filings, support, audits).
+  const formatted = new Date(iso).toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "UTC",
   });
+  return `${formatted} UTC`;
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import type { Order } from "@/lib/orders";
 
@@ -11,14 +12,6 @@ const paymentMethodLabel: Record<string, string> = {
   mastercard: "Mastercard",
   paypal: "PayPal",
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 export function OrderListRow({
   order,
@@ -50,7 +43,7 @@ export function OrderListRow({
             {offer?.title ?? "Listing unavailable"}
           </h2>
           <p className="font-display text-[12px] leading-4 text-brand-text-secondary-light">
-            {formatDate(order.createdAt)} ·{" "}
+            <LocalDate iso={order.createdAt} format="date" /> ·{" "}
             {paymentMethodLabel[order.paymentMethod] ?? order.paymentMethod} ·{" "}
             <span className="font-mono text-[11px]">
               {order.transactionId}

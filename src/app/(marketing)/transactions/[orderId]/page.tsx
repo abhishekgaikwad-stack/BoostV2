@@ -2,6 +2,7 @@ import { Check, Download } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import { getMyOrder } from "@/lib/orders";
 
@@ -12,16 +13,6 @@ const paymentMethodLabel: Record<string, string> = {
   mastercard: "Mastercard",
   paypal: "PayPal",
 };
-
-function formatOrderDate(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default async function OrderSuccessPage({
   params,
@@ -75,7 +66,7 @@ export default async function OrderSuccessPage({
 
         <dl className="flex flex-col gap-3 font-display text-[14px]">
           <Row label="Transaction ID" value={order.transactionId} mono />
-          <Row label="Date" value={formatOrderDate(order.createdAt)} />
+          <Row label="Date" value={<LocalDate iso={order.createdAt} />} />
           <Row
             label="Payment method"
             value={paymentMethodLabel[order.paymentMethod] ?? order.paymentMethod}
@@ -118,7 +109,7 @@ function Row({
   mono = false,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   mono?: boolean;
 }) {
   return (

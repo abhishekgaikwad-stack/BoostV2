@@ -2,6 +2,7 @@ import { ArrowLeft, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import { getMySale } from "@/lib/orders";
 
@@ -12,16 +13,6 @@ const paymentMethodLabel: Record<string, string> = {
   mastercard: "Mastercard",
   paypal: "PayPal",
 };
-
-function formatSoldAt(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default async function SaleDetailPage({
   params,
@@ -54,7 +45,7 @@ export default async function SaleDetailPage({
         </h1>
         <p className="font-display text-[14px] font-normal text-brand-text-secondary-light">
           This listing was purchased on{" "}
-          {formatSoldAt(sale.createdAt)}.
+          <LocalDate iso={sale.createdAt} />.
         </p>
       </div>
 
@@ -86,7 +77,7 @@ export default async function SaleDetailPage({
 
         <dl className="flex flex-col gap-3 font-display text-[14px]">
           <Row label="Transaction ID" value={sale.transactionId} mono />
-          <Row label="Sold on" value={formatSoldAt(sale.createdAt)} />
+          <Row label="Sold on" value={<LocalDate iso={sale.createdAt} />} />
           <Row
             label="Payment method"
             value={paymentMethodLabel[sale.paymentMethod] ?? sale.paymentMethod}
@@ -113,7 +104,7 @@ function Row({
   mono = false,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   mono?: boolean;
 }) {
   return (
