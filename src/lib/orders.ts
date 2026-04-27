@@ -19,6 +19,7 @@ export type OrderRow = {
     title: string;
     images: string[] | null;
     game: { id: string; slug: string; name: string };
+    seller: { name: string | null; store_id: number | null } | null;
   } | null;
 };
 
@@ -34,6 +35,7 @@ export type Order = {
     title: string;
     image: string | null;
     game: { slug: string; name: string };
+    seller: { name: string; storeId: number | null };
   } | null;
 };
 
@@ -49,7 +51,8 @@ const ORDER_SELECT = `
   id, transaction_id, price_cents, payment_method, status, created_at,
   account:accounts(
     id, title, images,
-    game:games(id, slug, name)
+    game:games(id, slug, name),
+    seller:profiles(name, store_id)
   )
 `;
 
@@ -69,6 +72,10 @@ function toOrder(row: OrderRow): Order {
           game: {
             slug: row.account.game.slug,
             name: row.account.game.name,
+          },
+          seller: {
+            name: row.account.seller?.name ?? "Seller",
+            storeId: row.account.seller?.store_id ?? null,
           },
         }
       : null,

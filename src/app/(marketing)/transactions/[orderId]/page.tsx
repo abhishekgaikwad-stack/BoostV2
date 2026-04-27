@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Download } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -91,6 +91,15 @@ export default async function OrderSuccessPage({
             €{order.price.toFixed(2)}
           </span>
         </div>
+
+        <a
+          href={`/api/invoice/${order.id}`}
+          download={`invoice-${order.transactionId}.pdf`}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-brand-border-light bg-white font-display text-[14px] font-medium text-brand-text-primary-light transition hover:bg-brand-bg-light"
+        >
+          <Download className="h-4 w-4" strokeWidth={1.75} />
+          Download invoice
+        </a>
 
         <Link
           href={continueHref}
