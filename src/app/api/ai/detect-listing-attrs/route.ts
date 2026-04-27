@@ -96,7 +96,13 @@ export async function POST(req: Request) {
     const text = await upstream.text();
     console.warn("[detect-listing-attrs] upstream error:", text);
     return NextResponse.json(
-      { error: "Detection unavailable", platform: null, region: null },
+      {
+        error: "Detection unavailable",
+        upstreamStatus: upstream.status,
+        upstreamBody: text,
+        platform: null,
+        region: null,
+      },
       { status: 502 },
     );
   }
