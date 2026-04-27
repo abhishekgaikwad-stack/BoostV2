@@ -31,12 +31,15 @@ export async function updateListing(
   // clear error message.
   const { data: existing, error: fetchError } = await supabase
     .from("accounts")
-    .select("id, seller_id, game_id, discount_price, discount_ends_at")
+    .select("id, seller_id, status, game_id, discount_price, discount_ends_at")
     .eq("id", offerId)
     .maybeSingle();
   if (fetchError || !existing) return { error: "Listing not found." };
   if (existing.seller_id !== user.id) {
     return { error: "You can only edit listings you own." };
+  }
+  if (existing.status !== "AVAILABLE") {
+    return { error: "This listing has been sold and can no longer be edited." };
   }
 
   const title = formData.get("title")?.toString().trim();

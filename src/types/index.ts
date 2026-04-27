@@ -28,6 +28,7 @@ export type Account = {
   /** ISO timestamp when the active flash discount expires, if any. */
   discountEndsAt?: string;
   images?: string[];
+  status: "AVAILABLE" | "RESERVED" | "SOLD";
 };
 
 export type Seller = {

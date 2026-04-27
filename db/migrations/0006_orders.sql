@@ -88,7 +88,10 @@ declare
   v_buyer uuid := auth.uid();
   v_account public.accounts%rowtype;
   v_order_id uuid := gen_random_uuid();
-  v_txn text := 'txn_' || encode(gen_random_bytes(8), 'hex');
+  -- 32-hex-char id from a v4 UUID. Avoids pgcrypto's gen_random_bytes,
+  -- which lives in the `extensions` schema and isn't on this function's
+  -- search_path.
+  v_txn text := 'txn_' || replace(gen_random_uuid()::text, '-', '');
   v_price integer;
 begin
   if v_buyer is null then

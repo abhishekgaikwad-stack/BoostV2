@@ -27,6 +27,7 @@ const sampleAccount = (id: string): Account => ({
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
   price: 40.2,
   oldPrice: 80.4,
+  status: "AVAILABLE",
 });
 
 export const newAccounts: Account[] = Array.from({ length: 10 }, (_, i) =>
@@ -136,6 +137,7 @@ export const flashSaleAccount: Account = {
   title: "20M 🏁 FORZA HORIZON 5 PS5 READY ACCOUNT 🚗",
   price: 40.2,
   oldPrice: 80.4,
+  status: "AVAILABLE",
 };
 
 export type SellerProfile = Seller & {

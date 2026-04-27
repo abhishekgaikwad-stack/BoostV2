@@ -78,6 +78,7 @@ export function toAccount(row: AccountRow): Account {
     oldPrice: row.old_price != null ? row.old_price / 100 : undefined,
     discountEndsAt: discountActive ? row.discount_ends_at! : undefined,
     images: row.images ?? [],
+    status: row.status,
   };
 }
 

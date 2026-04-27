@@ -18,6 +18,7 @@ type ListingRow = {
   discount_ends_at: string | null;
   images: string[];
   seller_id: string;
+  status: "AVAILABLE" | "RESERVED" | "SOLD";
   game: { slug: string; name: string };
 };
 
@@ -37,7 +38,7 @@ export default async function EditListingPage({
   const { data, error } = await supabase
     .from("accounts")
     .select(
-      "id, title, description, price, old_price, discount_price, discount_ends_at, images, seller_id, game:games(slug, name)",
+      "id, title, description, price, old_price, discount_price, discount_ends_at, images, seller_id, status, game:games(slug, name)",
     )
     .eq("id", offerId)
     .maybeSingle();
@@ -46,6 +47,11 @@ export default async function EditListingPage({
   const row = data as unknown as ListingRow;
   if (row.seller_id !== user.id) {
     // Not the owner — pretend it doesn't exist rather than leaking existence.
+    notFound();
+  }
+  if (row.status !== "AVAILABLE") {
+    // Sold (or reserved) listings are no longer editable. The seller should
+    // find them under /user/sales (sold) — bounce them there.
     notFound();
   }
 

@@ -20,6 +20,7 @@ export function ProductCard({
   const isDark = tone === "dark";
   const wishlist = useWishlist();
   const isWishlisted = wishlist?.isWishlisted(account.id) ?? false;
+  const isSold = account.status !== "AVAILABLE";
 
   return (
     <Link
@@ -29,6 +30,7 @@ export function ProductCard({
         isDark
           ? "border-brand-border-subtle bg-brand-bg-surface"
           : "border-brand-border-light bg-brand-bg-surface-light",
+        isSold && "opacity-50 hover:translate-y-0 hover:shadow-none",
         className,
       )}
     >
@@ -106,9 +108,15 @@ export function ProductCard({
           />
         ) : null}
         <div className="absolute inset-x-3 top-3 flex items-center justify-between">
-          <span className="grid h-6 w-6 place-items-center rounded-lg bg-black">
-            <Zap className="h-4 w-4 text-brand-accent" fill="currentColor" />
-          </span>
+          {isSold ? (
+            <span className="rounded-md bg-brand-discount px-2 py-1 font-display text-[11px] font-bold uppercase tracking-[0.1em] text-white">
+              Sold out
+            </span>
+          ) : (
+            <span className="grid h-6 w-6 place-items-center rounded-lg bg-black">
+              <Zap className="h-4 w-4 text-brand-accent" fill="currentColor" />
+            </span>
+          )}
           <span className="grid h-6 w-6 place-items-center rounded-lg bg-black text-white">
             <Bookmark className="h-3.5 w-3.5" strokeWidth={1.5} />
           </span>

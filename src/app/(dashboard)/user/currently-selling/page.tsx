@@ -52,6 +52,7 @@ export default async function CurrentlySellingPage() {
       "id, title, price, old_price, images, status, created_at, game:games(slug, name)",
     )
     .eq("seller_id", user.id)
+    .neq("status", "SOLD")
     .order("created_at", { ascending: false });
 
   const listings: SellerListingRowData[] = ((raw ?? []) as unknown as ListingRow[]).map(

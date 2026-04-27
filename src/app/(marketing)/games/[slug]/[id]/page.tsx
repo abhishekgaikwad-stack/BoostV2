@@ -7,7 +7,12 @@ import { OfferGallery } from "@/components/sections/OfferGallery";
 import { SellerCard } from "@/components/sections/SellerCard";
 import { SimilarAccounts } from "@/components/sections/SimilarAccounts";
 import { findOffer, similarOffers } from "@/lib/offers";
+import {
+  getMyPurchaseForListing,
+  getMySaleForListing,
+} from "@/lib/orders";
 import { resolveSellerProfile } from "@/lib/sellers";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function OfferPage({
   params,
@@ -34,6 +39,21 @@ export default async function OfferPage({
       }
     : offer.seller;
 
+  // BuyBox needs the viewer's identity to know whether this is their own
+  // listing (owner mode), and any related order to link into /transactions
+  // or /sales when the listing has been bought/sold.
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const viewerId = user?.id ?? null;
+  const isOwner = viewerId !== null && viewerId === offer.seller.id;
+  const relatedOrder = viewerId
+    ? isOwner
+      ? await getMySaleForListing(offer.id)
+      : await getMyPurchaseForListing(offer.id)
+    : null;
+
   return (
     <div className="flex flex-col gap-8">
       <Link
@@ -54,7 +74,11 @@ export default async function OfferPage({
           <OfferDescription description={offer.description} />
           <SellerCard seller={seller} reviews={offer.reviews} />
         </div>
-        <BuyBox offer={offer} />
+        <BuyBox
+          offer={offer}
+          isOwner={isOwner}
+          relatedOrderId={relatedOrder?.orderId ?? null}
+        />
       </div>
 
       <SimilarAccounts accounts={similar} />

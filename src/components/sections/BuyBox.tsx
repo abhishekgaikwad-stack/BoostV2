@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthPrompt } from "@/components/auth/AuthPromptProvider";
@@ -22,14 +23,19 @@ const paymentMethods = [
   { slug: "paypal", name: "PayPal" },
 ];
 
-export function BuyBox({ offer }: { offer: Offer }) {
+type BuyBoxProps = {
+  offer: Offer;
+  isOwner: boolean;
+  /** Set when the viewer has an order on this listing — buyer's purchase or
+   *  seller's sale. Used to link the status banner to the matching detail page. */
+  relatedOrderId: string | null;
+};
+
+export function BuyBox({ offer, isOwner, relatedOrderId }: BuyBoxProps) {
   const router = useRouter();
   const { requireLogin } = useAuthPrompt();
   const [isSignedIn, setSignedIn] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
-  // Countdown label. A flash discount takes priority over the generic
-  // offer_ends_at timer — shows "Limited offer 24Hrs 21Min 52Secs" (1s tick).
-  // Fallback: the legacy "OFFER ENDS IN 42HRS 32MIN" (1min tick).
   const [endsLabel, setEndsLabel] = useState<string | null>(() =>
     offer.discountEndsAt
       ? formatDiscountCountdown(offer.discountEndsAt)
@@ -58,7 +64,6 @@ export function BuyBox({ offer }: { offer: Offer }) {
     if (offer.offerEndsAt) {
       const tick = () => setEndsLabel(formatOfferEnds(offer.offerEndsAt));
       tick();
-      // Minute-level granularity is enough for "42HRS 32MIN".
       const handle = window.setInterval(tick, 60_000);
       return () => window.clearInterval(handle);
     }
@@ -86,6 +91,38 @@ export function BuyBox({ offer }: { offer: Offer }) {
     router.push(`/checkout/${offer.id}`);
   }
 
+  const isSold = offer.status !== "AVAILABLE";
+  const mode: "owner-active" | "owner-sold" | "sold" | "active-buy" = isSold
+    ? isOwner
+      ? "owner-sold"
+      : "sold"
+    : isOwner
+      ? "owner-active"
+      : "active-buy";
+
+  const priceBlock = (
+    <div className="flex items-baseline gap-3">
+      <span className="font-display text-[32px] font-medium leading-9">
+        €{offer.price.toFixed(2)}
+      </span>
+      {offer.oldPrice ? (
+        <span className="font-display text-[14px] font-medium text-brand-text-secondary-dark line-through">
+          €{offer.oldPrice.toFixed(2)}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  if (mode !== "active-buy") {
+    return (
+      <aside className="sticky top-[calc(var(--spacing)*12)] flex w-full flex-col gap-4 self-start rounded-3xl bg-black p-6 text-white">
+        <StatusPill mode={mode} />
+        {priceBlock}
+        <ActionLink mode={mode} offer={offer} relatedOrderId={relatedOrderId} />
+      </aside>
+    );
+  }
+
   return (
     <aside className="sticky top-[calc(var(--spacing)*12)] flex w-full flex-col gap-4 self-start rounded-3xl bg-black p-6 text-white">
       {(() => {
@@ -110,16 +147,7 @@ export function BuyBox({ offer }: { offer: Offer }) {
         );
       })()}
 
-      <div className="flex items-baseline gap-3">
-        <span className="font-display text-[32px] font-medium leading-9">
-          €{offer.price.toFixed(2)}
-        </span>
-        {offer.oldPrice ? (
-          <span className="font-display text-[14px] font-medium text-brand-text-secondary-dark line-through">
-            €{offer.oldPrice.toFixed(2)}
-          </span>
-        ) : null}
-      </div>
+      {priceBlock}
 
       {isSignedIn === false ? (
         <div className="flex items-center gap-3 rounded-2xl border border-brand-border-subtle bg-brand-bg-elevated px-4 py-3">
@@ -185,6 +213,72 @@ export function BuyBox({ offer }: { offer: Offer }) {
         ))}
       </div>
     </aside>
+  );
+}
+
+function StatusPill({
+  mode,
+}: {
+  mode: "owner-active" | "owner-sold" | "sold";
+}) {
+  const label =
+    mode === "sold" || mode === "owner-sold" ? "Sold" : "Your listing";
+  const tone =
+    mode === "sold" || mode === "owner-sold"
+      ? "bg-brand-discount text-white"
+      : "bg-brand-accent text-black";
+  return (
+    <span
+      className={`w-fit rounded-md px-2 py-1 font-display text-[11px] font-bold uppercase tracking-[0.1em] ${tone}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function ActionLink({
+  mode,
+  offer,
+  relatedOrderId,
+}: {
+  mode: "owner-active" | "owner-sold" | "sold";
+  offer: Offer;
+  relatedOrderId: string | null;
+}) {
+  const linkClasses =
+    "inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[15px] font-medium text-black transition hover:brightness-95";
+  const ghostClasses =
+    "inline-flex h-12 items-center justify-center rounded-2xl border border-brand-border-subtle bg-brand-bg-elevated font-display text-[15px] font-medium text-brand-text-primary-dark";
+
+  if (mode === "owner-active") {
+    return (
+      <Link
+        href={`/user/currently-selling/${offer.id}`}
+        className={linkClasses}
+      >
+        Manage listing
+      </Link>
+    );
+  }
+
+  if (mode === "owner-sold") {
+    return relatedOrderId ? (
+      <Link href={`/sales/${relatedOrderId}`} className={linkClasses}>
+        View sale
+      </Link>
+    ) : (
+      <span className={ghostClasses}>Sold</span>
+    );
+  }
+
+  // mode === "sold" (non-owner viewer; only the original buyer reaches this
+  // page after the listing flips to SOLD, thanks to accounts_select_buyer).
+  return relatedOrderId ? (
+    <Link href={`/transactions/${relatedOrderId}`} className={linkClasses}>
+      View receipt
+    </Link>
+  ) : (
+    <span className={ghostClasses}>Sold</span>
   );
 }
 

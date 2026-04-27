@@ -1,6 +1,14 @@
 "use client";
 
-import { Heart, LogOut, Package, User, UserCircle } from "lucide-react";
+import {
+  Heart,
+  LogOut,
+  Package,
+  Receipt,
+  Tag,
+  User,
+  UserCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -119,13 +127,27 @@ export function UserNav() {
             label="Wishlist"
             onClick={() => setOpen(false)}
           />
+          <MenuLink
+            href="/user/transactions"
+            icon={<Receipt className="h-4 w-4" strokeWidth={1.5} />}
+            label="Transactions"
+            onClick={() => setOpen(false)}
+          />
           {session.isSeller ? (
-            <MenuLink
-              href="/user/currently-selling"
-              icon={<Package className="h-4 w-4" strokeWidth={1.5} />}
-              label="Currently selling"
-              onClick={() => setOpen(false)}
-            />
+            <>
+              <MenuLink
+                href="/user/currently-selling"
+                icon={<Package className="h-4 w-4" strokeWidth={1.5} />}
+                label="Currently selling"
+                onClick={() => setOpen(false)}
+              />
+              <MenuLink
+                href="/user/sales"
+                icon={<Tag className="h-4 w-4" strokeWidth={1.5} />}
+                label="Sales"
+                onClick={() => setOpen(false)}
+              />
+            </>
           ) : null}
           <div className="my-1 border-t border-brand-border-light" />
           <button
