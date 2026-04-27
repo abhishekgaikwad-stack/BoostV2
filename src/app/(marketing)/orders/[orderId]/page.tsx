@@ -1,4 +1,4 @@
-import { Check, Download } from "lucide-react";
+import { ArrowLeft, Check, Download } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -29,6 +29,14 @@ export default async function OrderSuccessPage({
 
   return (
     <div className="flex flex-col gap-8">
+      <Link
+        href="/user/orders"
+        className="inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border-light bg-white px-4 py-2 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:bg-brand-bg-light"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+        Back to my orders
+      </Link>
+
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="grid h-14 w-14 place-items-center rounded-full bg-brand-success text-black">
           <Check className="h-7 w-7" strokeWidth={3} />

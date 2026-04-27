@@ -274,7 +274,7 @@ function ActionLink({
   // mode === "sold" (non-owner viewer; only the original buyer reaches this
   // page after the listing flips to SOLD, thanks to accounts_select_buyer).
   return relatedOrderId ? (
-    <Link href={`/transactions/${relatedOrderId}`} className={linkClasses}>
+    <Link href={`/orders/${relatedOrderId}`} className={linkClasses}>
       View receipt
     </Link>
   ) : (

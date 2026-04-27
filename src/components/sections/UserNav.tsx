@@ -2,6 +2,7 @@
 
 import {
   Heart,
+  ListOrdered,
   LogOut,
   Package,
   Receipt,
@@ -128,9 +129,9 @@ export function UserNav() {
             onClick={() => setOpen(false)}
           />
           <MenuLink
-            href="/user/transactions"
-            icon={<Receipt className="h-4 w-4" strokeWidth={1.5} />}
-            label="Transactions"
+            href="/user/orders"
+            icon={<ListOrdered className="h-4 w-4" strokeWidth={1.5} />}
+            label="My orders"
             onClick={() => setOpen(false)}
           />
           {session.isSeller ? (
@@ -145,6 +146,12 @@ export function UserNav() {
                 href="/user/sales"
                 icon={<Tag className="h-4 w-4" strokeWidth={1.5} />}
                 label="Sales"
+                onClick={() => setOpen(false)}
+              />
+              <MenuLink
+                href="/user/transactions"
+                icon={<Receipt className="h-4 w-4" strokeWidth={1.5} />}
+                label="Transactions"
                 onClick={() => setOpen(false)}
               />
             </>

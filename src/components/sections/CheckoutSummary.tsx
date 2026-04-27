@@ -35,7 +35,7 @@ export function CheckoutSummary({
       setPending(false);
       return;
     }
-    router.push(`/transactions/${result.orderId}`);
+    router.push(`/orders/${result.orderId}`);
   }
 
   return (
