@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Check,
-  Copy,
-  Eye,
-  EyeOff,
-  Lock,
-  X,
-} from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Lock, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { gameImage } from "@/lib/images";
@@ -26,16 +19,15 @@ type Props = {
 
 type Stage = "confirm" | "revealing" | "revealed" | "error";
 
-const credentialFieldOrder: Array<{
-  key: keyof AccountCredentials;
+const credentialFields: Array<{
+  key: keyof Omit<AccountCredentials, "notes">;
   label: string;
   secret?: boolean;
 }> = [
-  { key: "login", label: "Login" },
+  { key: "login", label: "Login / username" },
   { key: "password", label: "Password", secret: true },
   { key: "email", label: "Email" },
   { key: "emailPassword", label: "Email password", secret: true },
-  { key: "notes", label: "Notes" },
 ];
 
 export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
@@ -52,7 +44,6 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Reset / auto-fetch when the dialog opens.
   useEffect(() => {
     if (!open) return;
     setErrorMessage(null);
@@ -68,7 +59,6 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Close on Escape.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -103,18 +93,18 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label="Reveal order details"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[480px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="relative w-full max-w-[520px] overflow-hidden rounded-3xl bg-[#1a1a1a] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-brand-bg-light text-brand-text-primary-light transition hover:bg-brand-bg-pill"
+          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-[#2a2a2a] text-white transition hover:bg-[#333333]"
         >
           <X className="h-4 w-4" strokeWidth={1.75} />
         </button>
@@ -122,7 +112,7 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
         <div className="flex flex-col gap-5 p-6">
           {offer ? (
             <header className="flex items-center gap-4">
-              <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-2xl bg-brand-bg-pill">
+              <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-2xl bg-[#2a2a2a]">
                 <Image
                   src={gameImage(offer.game.slug)}
                   alt={offer.game.name}
@@ -132,10 +122,10 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
                 />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="font-display text-[12px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
+                <span className="font-display text-[12px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-dark">
                   {offer.game.name}
                 </span>
-                <h2 className="truncate font-display text-[16px] font-medium leading-5 text-brand-text-primary-light">
+                <h2 className="truncate font-display text-[16px] font-medium leading-5 text-white">
                   {offer.title}
                 </h2>
               </div>
@@ -157,7 +147,7 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
           ) : null}
 
           {stage === "revealing" ? (
-            <div className="flex items-center justify-center gap-3 py-8 font-display text-[13px] text-brand-text-secondary-light">
+            <div className="flex items-center justify-center gap-3 py-8 font-display text-[13px] text-brand-text-secondary-dark">
               <Lock className="h-4 w-4 animate-pulse" strokeWidth={1.5} />
               Decrypting credentials…
             </div>
@@ -168,14 +158,14 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
           ) : null}
 
           {stage === "error" ? (
-            <div className="flex flex-col gap-3 rounded-2xl border border-brand-discount/30 bg-brand-discount/5 p-4">
+            <div className="flex flex-col gap-3 rounded-2xl border border-brand-discount/30 bg-brand-discount/10 p-4">
               <p className="font-display text-[13px] font-medium text-brand-discount">
                 {errorMessage ?? "Something went wrong."}
               </p>
               <button
                 type="button"
                 onClick={onClose}
-                className="self-end font-display text-[12px] font-medium text-brand-text-secondary-light underline hover:text-brand-text-primary-light"
+                className="self-end font-display text-[12px] font-medium text-brand-text-secondary-dark underline hover:text-white"
               >
                 Close
               </button>
@@ -217,7 +207,7 @@ function ConfirmStage({
           label={
             <>
               I confirm platform{" "}
-              <strong className="font-medium text-brand-text-primary-light">
+              <strong className="font-medium text-white">
                 {platformValue}
               </strong>{" "}
               is correct
@@ -230,16 +220,14 @@ function ConfirmStage({
           label={
             <>
               I confirm region{" "}
-              <strong className="font-medium text-brand-text-primary-light">
-                {regionValue}
-              </strong>{" "}
+              <strong className="font-medium text-white">{regionValue}</strong>{" "}
               is correct
             </>
           }
         />
       </div>
 
-      <p className="font-display text-[12px] leading-4 text-brand-text-secondary-light">
+      <p className="font-display text-[12px] leading-4 text-brand-text-secondary-dark">
         Once revealed, the platform and region confirmations are recorded and
         the credentials remain accessible from this order.
       </p>
@@ -248,7 +236,7 @@ function ConfirmStage({
         <button
           type="button"
           onClick={onCancel}
-          className="font-display text-[13px] font-medium text-brand-text-secondary-light underline hover:text-brand-text-primary-light"
+          className="font-display text-[13px] font-medium text-brand-text-secondary-dark underline hover:text-white"
         >
           Cancel
         </button>
@@ -256,7 +244,7 @@ function ConfirmStage({
           type="button"
           onClick={onReveal}
           disabled={!canReveal}
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-black px-5 font-display text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 font-display text-[13px] font-medium text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Eye className="h-4 w-4" strokeWidth={1.75} />
           Reveal details
@@ -273,20 +261,21 @@ function RevealedStage({
   credentials: AccountCredentials;
   onClose: () => void;
 }) {
-  const visible = credentialFieldOrder.filter(
+  const populated = credentialFields.filter(
     (f) => credentials[f.key] && (credentials[f.key] as string).length > 0,
   );
+  const notes = credentials.notes && credentials.notes.length > 0 ? credentials.notes : null;
 
-  if (visible.length === 0) {
+  if (populated.length === 0 && !notes) {
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border border-brand-border-light bg-brand-bg-light p-4">
-        <p className="font-display text-[13px] text-brand-text-secondary-light">
+      <div className="flex flex-col gap-3 rounded-2xl border border-brand-border-subtle bg-[#2a2a2a] p-4">
+        <p className="font-display text-[13px] text-brand-text-secondary-dark">
           The seller didn't add any credentials to this listing.
         </p>
         <button
           type="button"
           onClick={onClose}
-          className="self-end font-display text-[12px] font-medium text-brand-text-secondary-light underline hover:text-brand-text-primary-light"
+          className="self-end font-display text-[12px] font-medium text-brand-text-secondary-dark underline hover:text-white"
         >
           Close
         </button>
@@ -296,30 +285,32 @@ function RevealedStage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <span className="font-display text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
-          Account credentials
-        </span>
-        <span className="font-display text-[11px] text-brand-text-tertiary-dark">
-          Private — do not share these.
+      <div className="flex items-center gap-2 text-white">
+        <Lock className="h-4 w-4" strokeWidth={1.5} />
+        <span className="font-display text-[13px] font-medium">
+          Account credentials (private)
         </span>
       </div>
 
-      <ul className="flex flex-col gap-3">
-        {visible.map((field) => (
-          <CredentialRow
-            key={field.key}
-            label={field.label}
-            value={credentials[field.key] as string}
-            secret={field.secret}
-          />
-        ))}
-      </ul>
+      {populated.length > 0 ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {populated.map((field) => (
+            <CredentialField
+              key={field.key}
+              label={field.label}
+              value={credentials[field.key] as string}
+              secret={field.secret}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {notes ? <NotesField value={notes} /> : null}
 
       <button
         type="button"
         onClick={onClose}
-        className="inline-flex h-11 items-center justify-center rounded-2xl border border-brand-border-light bg-white font-display text-[13px] font-medium text-brand-text-primary-light transition hover:bg-brand-bg-light"
+        className="mt-2 inline-flex h-11 items-center justify-center rounded-xl border border-brand-border-subtle bg-[#2a2a2a] font-display text-[13px] font-medium text-white transition hover:bg-[#333333]"
       >
         Close
       </button>
@@ -327,7 +318,7 @@ function RevealedStage({
   );
 }
 
-function CredentialRow({
+function CredentialField({
   label,
   value,
   secret,
@@ -350,16 +341,12 @@ function CredentialRow({
   }
 
   return (
-    <li className="flex flex-col gap-1 rounded-2xl border border-brand-border-light bg-brand-bg-light p-3">
-      <span className="font-display text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
+    <label className="flex flex-col gap-2">
+      <span className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-dark">
         {label}
       </span>
-      <div className="flex items-center gap-2">
-        <span
-          className={`flex-1 truncate font-mono text-[13px] text-brand-text-primary-light ${
-            secret && !reveal ? "tracking-widest" : ""
-          }`}
-        >
+      <div className="flex h-11 items-center gap-2 rounded-xl bg-[#2a2a2a] px-4">
+        <span className="flex-1 truncate font-display text-[14px] font-medium text-white">
           {secret && !reveal ? "•".repeat(Math.min(value.length, 12)) : value}
         </span>
         {secret ? (
@@ -367,7 +354,7 @@ function CredentialRow({
             type="button"
             aria-label={reveal ? "Hide" : "Show"}
             onClick={() => setReveal((v) => !v)}
-            className="grid h-8 w-8 place-items-center rounded-lg border border-brand-border-light bg-white text-brand-text-primary-light transition hover:bg-brand-bg-pill"
+            className="grid h-7 w-7 place-items-center rounded-md text-brand-text-secondary-dark transition hover:bg-[#333333] hover:text-white"
           >
             {reveal ? (
               <EyeOff className="h-4 w-4" strokeWidth={1.5} />
@@ -380,7 +367,7 @@ function CredentialRow({
           type="button"
           onClick={copy}
           aria-label="Copy"
-          className="grid h-8 w-8 place-items-center rounded-lg border border-brand-border-light bg-white text-brand-text-primary-light transition hover:bg-brand-bg-pill"
+          className="grid h-7 w-7 place-items-center rounded-md text-brand-text-secondary-dark transition hover:bg-[#333333] hover:text-white"
         >
           {copied ? (
             <Check className="h-4 w-4 text-brand-success" strokeWidth={2} />
@@ -389,7 +376,46 @@ function CredentialRow({
           )}
         </button>
       </div>
-    </li>
+    </label>
+  );
+}
+
+function NotesField({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  }
+
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-dark">
+        Notes for the buyer
+      </span>
+      <div className="relative rounded-xl bg-[#2a2a2a] px-4 py-3">
+        <p className="whitespace-pre-wrap pr-10 font-display text-[13px] font-medium leading-5 text-white">
+          {value}
+        </p>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label="Copy"
+          className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md text-brand-text-secondary-dark transition hover:bg-[#333333] hover:text-white"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-brand-success" strokeWidth={2} />
+          ) : (
+            <Copy className="h-4 w-4" strokeWidth={1.5} />
+          )}
+        </button>
+      </div>
+    </label>
   );
 }
 
@@ -403,14 +429,14 @@ function CheckRow({
   label: React.ReactNode;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-2xl border border-brand-border-light bg-brand-bg-light p-3">
+    <label className="flex items-start gap-3 rounded-xl border border-brand-border-subtle bg-[#2a2a2a] p-3">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-5 w-5 shrink-0 rounded border border-brand-border-light bg-white accent-brand-accent"
+        className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border border-brand-border-subtle bg-[#1a1a1a] accent-brand-accent"
       />
-      <span className="font-display text-[13px] leading-5 text-brand-text-secondary-light">
+      <span className="font-display text-[13px] leading-5 text-brand-text-secondary-dark">
         {label}
       </span>
     </label>
