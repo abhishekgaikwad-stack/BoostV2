@@ -219,7 +219,7 @@ export async function offersForSeller(
       .from("accounts")
       .select(ACCOUNT_SELECT)
       .eq("seller.store_id", storeId)
-      .eq("status", "AVAILABLE")
+      .neq("status", "SOLD")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(limit + 1),
