@@ -7,6 +7,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type OrderStatus = "PENDING" | "PAID" | "DELIVERED" | "REFUNDED";
 
+export type ReceivedChecks = {
+  account_info_works?: boolean;
+  matches_description?: boolean;
+  email_access?: boolean | null;
+  password_changed?: boolean;
+};
+
 export type OrderRow = {
   id: string;
   transaction_id: string;
@@ -15,6 +22,8 @@ export type OrderRow = {
   status: OrderStatus;
   created_at: string;
   revealed_at: string | null;
+  marked_received_at: string | null;
+  received_checks: ReceivedChecks | null;
   account: {
     id: string;
     title: string;
@@ -35,6 +44,10 @@ export type Order = {
   createdAt: string;
   /** ISO timestamp of the first credential reveal (null if never revealed). */
   revealedAt: string | null;
+  /** ISO timestamp the buyer marked the order as received, null if not. */
+  markedReceivedAt: string | null;
+  /** Snapshot of the confirmation checkboxes the buyer ticked. */
+  receivedChecks: ReceivedChecks | null;
   offer: {
     id: string;
     title: string;
@@ -58,7 +71,8 @@ export type Sale = Order;
 // the rest of the app deals only with `Order.id` strings (e.g. `o-12345678`)
 // and never sees the internal UUID PK.
 const ORDER_SELECT = `
-  id:order_number, transaction_id, price_cents, payment_method, status, created_at, revealed_at,
+  id:order_number, transaction_id, price_cents, payment_method, status, created_at,
+  revealed_at, marked_received_at, received_checks,
   account:accounts(
     id, title, images, platform, region,
     game:games(id, slug, name),
@@ -75,6 +89,8 @@ function toOrder(row: OrderRow): Order {
     status: row.status,
     createdAt: row.created_at,
     revealedAt: row.revealed_at ?? null,
+    markedReceivedAt: row.marked_received_at ?? null,
+    receivedChecks: row.received_checks ?? null,
     offer: row.account
       ? {
           id: row.account.id,

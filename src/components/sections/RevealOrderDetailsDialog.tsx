@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, Copy, Eye, EyeOff, Lock, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, EyeOff, Lock, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { gameImage } from "@/lib/images";
 import type { AccountCredentials } from "@/lib/credentials";
-import type { Order } from "@/lib/orders";
+import type { Order, ReceivedChecks } from "@/lib/orders";
+import { confirmOrderReceived } from "@/lib/orders-confirm";
 import {
   revealOrderCredentials,
   type RevealCredentialsResult,
@@ -17,7 +18,12 @@ type Props = {
   onClose: () => void;
 };
 
-type Stage = "confirm" | "revealing" | "revealed" | "error";
+type Stage =
+  | "confirm"
+  | "revealing"
+  | "revealed"
+  | "confirm-received"
+  | "error";
 
 const credentialFields: Array<{
   key: keyof Omit<AccountCredentials, "notes">;
@@ -154,7 +160,23 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
           ) : null}
 
           {stage === "revealed" && credentials ? (
-            <RevealedStage credentials={credentials} onClose={onClose} />
+            <RevealedStage
+              credentials={credentials}
+              markedReceivedAt={order.markedReceivedAt}
+              onMarkReceivedClick={() => setStage("confirm-received")}
+              onClose={onClose}
+            />
+          ) : null}
+
+          {stage === "confirm-received" && credentials ? (
+            <ConfirmReceivedStage
+              orderId={order.id}
+              hasEmailCredential={Boolean(
+                credentials.email && credentials.email.length > 0,
+              )}
+              onBack={() => setStage("revealed")}
+              onSuccess={onClose}
+            />
           ) : null}
 
           {stage === "error" ? (
@@ -256,9 +278,13 @@ function ConfirmStage({
 
 function RevealedStage({
   credentials,
+  markedReceivedAt,
+  onMarkReceivedClick,
   onClose,
 }: {
   credentials: AccountCredentials;
+  markedReceivedAt: string | null;
+  onMarkReceivedClick: () => void;
   onClose: () => void;
 }) {
   const populated = credentialFields.filter(
@@ -307,14 +333,159 @@ function RevealedStage({
 
       {notes ? <NotesField value={notes} /> : null}
 
+      {markedReceivedAt ? (
+        <ReceivedIndicator markedReceivedAt={markedReceivedAt} />
+      ) : (
+        <button
+          type="button"
+          onClick={onMarkReceivedClick}
+          className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[13px] font-medium text-black transition hover:brightness-95"
+        >
+          <Check className="h-4 w-4" strokeWidth={2} />
+          Mark as received
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ReceivedIndicator({ markedReceivedAt }: { markedReceivedAt: string }) {
+  const formatted = new Date(markedReceivedAt).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  return (
+    <div className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-brand-success/30 bg-brand-success/10 px-4 py-3 font-display text-[13px] font-medium text-brand-success">
+      <Check className="h-4 w-4" strokeWidth={2} />
+      Marked as received on {formatted}
+    </div>
+  );
+}
+
+function ConfirmReceivedStage({
+  orderId,
+  hasEmailCredential,
+  onBack,
+  onSuccess,
+}: {
+  orderId: string;
+  hasEmailCredential: boolean;
+  onBack: () => void;
+  onSuccess: () => void;
+}) {
+  const [accountInfoWorks, setAccountInfoWorks] = useState(false);
+  const [matchesDescription, setMatchesDescription] = useState(false);
+  const [emailAccess, setEmailAccess] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const requiredOk =
+    accountInfoWorks &&
+    matchesDescription &&
+    passwordChanged &&
+    (!hasEmailCredential || emailAccess);
+
+  async function handleSubmit() {
+    if (!requiredOk || pending) return;
+    setErrorMessage(null);
+    setPending(true);
+    const checks: ReceivedChecks = {
+      account_info_works: accountInfoWorks,
+      matches_description: matchesDescription,
+      email_access: hasEmailCredential ? emailAccess : null,
+      password_changed: passwordChanged,
+    };
+    const result = await confirmOrderReceived({ orderId, checks });
+    if ("error" in result) {
+      setErrorMessage(result.error);
+      setPending(false);
+      return;
+    }
+    onSuccess();
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2 text-white">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back"
+          className="grid h-7 w-7 place-items-center rounded-md text-brand-text-secondary-dark transition hover:bg-[#2a2a2a] hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+        </button>
+        <span className="font-display text-[16px] font-medium">
+          Review and confirm your order
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <ReceivedCheckRow
+          checked={accountInfoWorks}
+          onChange={setAccountInfoWorks}
+          label="Account info works"
+        />
+        <ReceivedCheckRow
+          checked={matchesDescription}
+          onChange={setMatchesDescription}
+          label="Matches the offer description"
+        />
+        {hasEmailCredential ? (
+          <ReceivedCheckRow
+            checked={emailAccess}
+            onChange={setEmailAccess}
+            label="Access to email"
+          />
+        ) : null}
+        <ReceivedCheckRow
+          checked={passwordChanged}
+          onChange={setPasswordChanged}
+          label="Password changed"
+        />
+      </div>
+
+      {errorMessage ? (
+        <p className="font-display text-[12px] font-medium text-brand-discount">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <button
         type="button"
-        onClick={onClose}
-        className="mt-2 inline-flex h-11 items-center justify-center rounded-xl border border-brand-border-subtle bg-[#2a2a2a] font-display text-[13px] font-medium text-white transition hover:bg-[#333333]"
+        onClick={handleSubmit}
+        disabled={!requiredOk || pending}
+        className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[13px] font-medium text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Close
+        {pending ? "Confirming…" : "Confirm receipt"}
       </button>
     </div>
+  );
+}
+
+function ReceivedCheckRow({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex items-center gap-3 rounded-xl border border-brand-border-subtle bg-[#2a2a2a] px-4 py-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-5 w-5 shrink-0 cursor-pointer rounded border border-brand-border-subtle bg-[#1a1a1a] accent-brand-accent"
+      />
+      <span className="font-display text-[14px] font-medium text-white">
+        {label}
+      </span>
+    </label>
   );
 }
 
