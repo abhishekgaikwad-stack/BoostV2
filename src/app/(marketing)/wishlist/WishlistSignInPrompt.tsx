@@ -41,7 +41,7 @@ export function WishlistSignInPrompt() {
         <button
           type="button"
           onClick={requireLogin}
-          className="inline-flex h-11 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-6 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-6 font-display text-[14px] font-medium text-white transition hover:bg-neutral-800"
         >
           Sign in
         </button>

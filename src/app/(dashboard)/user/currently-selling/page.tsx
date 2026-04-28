@@ -38,7 +38,7 @@ export default async function CurrentlySellingPage() {
         </p>
         <Link
           href="/profile"
-          className="inline-flex h-12 w-fit items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+          className="inline-flex h-12 w-fit items-center justify-center rounded-xl bg-black px-5 font-display text-[14px] font-medium text-white transition hover:bg-neutral-800"
         >
           Go to profile
         </Link>
@@ -83,7 +83,7 @@ export default async function CurrentlySellingPage() {
         </div>
         <Link
           href="/sell"
-          className="inline-flex h-11 items-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 font-display text-[13px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+          className="inline-flex h-11 items-center rounded-xl bg-black px-5 font-display text-[13px] font-medium text-white transition hover:bg-neutral-800"
         >
           List a new account
         </Link>

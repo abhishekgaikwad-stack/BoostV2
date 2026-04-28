@@ -115,7 +115,7 @@ export function RegionPopup({
         <button
           type="button"
           onClick={handleSave}
-          className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[13px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+          className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-xl bg-black font-display text-[13px] font-medium text-white transition hover:bg-neutral-800"
         >
           Save preferences
         </button>

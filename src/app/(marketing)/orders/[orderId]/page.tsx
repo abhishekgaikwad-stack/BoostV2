@@ -106,7 +106,7 @@ export default async function OrderSuccessPage({
 
         <Link
           href={continueHref}
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[15px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+          className="inline-flex h-12 items-center justify-center rounded-xl bg-black font-display text-[15px] font-medium text-white transition hover:bg-neutral-800"
         >
           Continue browsing
         </Link>

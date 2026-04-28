@@ -154,7 +154,7 @@ export function LoginPopup({
             <button
               type="submit"
               disabled={status === "sending" || status === "sent"}
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[13px] font-medium text-brand-text-primary-light transition hover:brightness-95 disabled:opacity-60"
+              className="inline-flex h-12 items-center justify-center rounded-xl bg-black font-display text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
             >
               {status === "sending"
                 ? "Sending…"

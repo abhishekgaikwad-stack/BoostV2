@@ -46,7 +46,7 @@ export async function FlashSaleSection() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 py-3 font-display text-[13px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+            className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 font-display text-[13px] font-medium text-white transition hover:bg-neutral-800"
           >
             Shop flash deals
           </button>

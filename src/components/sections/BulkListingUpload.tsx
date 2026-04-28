@@ -319,7 +319,7 @@ export function BulkListingUpload({ games }: { games: Game[] }) {
               type="button"
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="inline-flex h-12 items-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:brightness-95 disabled:opacity-60"
+              className="inline-flex h-12 items-center rounded-xl bg-black px-5 font-display text-[14px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
             >
               {pending
                 ? "Creating…"

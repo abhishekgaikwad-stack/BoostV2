@@ -256,7 +256,7 @@ function ConfirmStage({
           type="button"
           onClick={onReveal}
           disabled={!canReveal}
-          className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 font-display text-[13px] font-medium text-brand-text-primary-light transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-black px-5 font-display text-[13px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Eye className="h-4 w-4" strokeWidth={1.75} />
           Reveal details

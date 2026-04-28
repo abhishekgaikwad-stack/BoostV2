@@ -34,7 +34,7 @@ export default async function TransactionsPage() {
         </p>
         <Link
           href="/profile"
-          className="inline-flex h-12 w-fit items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark px-5 font-display text-[14px] font-medium text-brand-text-primary-light transition hover:brightness-95"
+          className="inline-flex h-12 w-fit items-center justify-center rounded-xl bg-black px-5 font-display text-[14px] font-medium text-white transition hover:bg-neutral-800"
         >
           Go to profile
         </Link>

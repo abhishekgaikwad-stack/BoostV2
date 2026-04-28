@@ -181,7 +181,7 @@ export function CreateListingForm({ games }: { games: Game[] }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 inline-flex h-12 items-center justify-center rounded-2xl bg-gradient-to-b from-brand-accent to-brand-accent-dark font-display text-[14px] font-medium text-brand-text-primary-light transition hover:brightness-95 disabled:opacity-60"
+        className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-black font-display text-[14px] font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
       >
         {pending ? "Creating…" : "Create listing"}
       </button>

@@ -103,7 +103,7 @@ export function ConfirmDialog({
               "inline-flex h-10 items-center rounded-xl px-4 font-display text-[13px] font-medium transition disabled:opacity-60",
               destructive
                 ? "bg-brand-discount text-white hover:brightness-95"
-                : "bg-gradient-to-b from-brand-accent to-brand-accent-dark text-brand-text-primary-light hover:brightness-95",
+                : "bg-black text-white hover:bg-neutral-800",
             )}
           >
             {pending ? `${confirmLabel}…` : confirmLabel}
