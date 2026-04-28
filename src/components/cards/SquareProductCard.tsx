@@ -36,7 +36,7 @@ export function SquareProductCard({
       </div>
       <span
         className={cn(
-          "font-display text-[12px] font-medium leading-4",
+          "font-display text-[12px] font-medium leading-4 text-center",
           tone === "light"
             ? "text-brand-text-primary-light"
             : "text-brand-text-primary-dark",
