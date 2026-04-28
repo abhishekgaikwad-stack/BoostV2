@@ -16,7 +16,7 @@ export function SquareProductCard({
   return (
     <Link
       href={`/games/${game.slug}`}
-      className={cn("flex w-20 flex-col items-center gap-2", className)}
+      className={cn("group flex w-20 flex-col items-center gap-2", className)}
     >
       <div
         className={cn(
@@ -30,7 +30,7 @@ export function SquareProductCard({
             alt={game.name}
             fill
             sizes="80px"
-            className="object-cover"
+            className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
           />
         ) : null}
       </div>
