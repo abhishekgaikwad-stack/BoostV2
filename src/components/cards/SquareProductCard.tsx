@@ -18,12 +18,7 @@ export function SquareProductCard({
       href={`/games/${game.slug}`}
       className={cn("group flex w-20 flex-col items-center gap-2", className)}
     >
-      <div
-        className={cn(
-          "relative aspect-square w-20 overflow-hidden rounded-3xl",
-          tone === "light" ? "bg-brand-bg-pill" : "bg-brand-bg-surface-light",
-        )}
-      >
+      <div className="relative aspect-square w-20 overflow-hidden rounded-3xl">
         {game.cover ? (
           <Image
             src={gameImage(game.cover)}

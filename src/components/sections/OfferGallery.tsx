@@ -19,7 +19,7 @@ export function OfferGallery({ offer }: { offer: Offer }) {
         ) : null}
       </div>
       <div className="flex items-center gap-4 self-start rounded-2xl p-4">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-brand-discount">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl">
           <Image
             src={gameImage(offer.game.slug)}
             alt={offer.game.name}
