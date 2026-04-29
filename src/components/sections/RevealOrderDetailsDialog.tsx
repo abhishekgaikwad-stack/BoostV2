@@ -16,6 +16,9 @@ type Props = {
   order: Order;
   open: boolean;
   onClose: () => void;
+  /** Fires after a successful Confirm-receipt submit so the parent can
+   *  open the review dialog (the next sequential step). */
+  onConfirmedReceipt?: () => void;
 };
 
 type Stage =
@@ -36,7 +39,12 @@ const credentialFields: Array<{
   { key: "emailPassword", label: "Email password", secret: true },
 ];
 
-export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
+export function RevealOrderDetailsDialog({
+  order,
+  open,
+  onClose,
+  onConfirmedReceipt,
+}: Props) {
   const offer = order.offer;
   const isAlreadyRevealed = Boolean(order.revealedAt);
 
@@ -175,7 +183,10 @@ export function RevealOrderDetailsDialog({ order, open, onClose }: Props) {
                 credentials.email && credentials.email.length > 0,
               )}
               onBack={() => setStage("revealed")}
-              onSuccess={onClose}
+              onSuccess={() => {
+                onClose();
+                onConfirmedReceipt?.();
+              }}
             />
           ) : null}
 

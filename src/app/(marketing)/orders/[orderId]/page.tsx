@@ -1,11 +1,12 @@
-import { ArrowLeft, Check, Download } from "lucide-react";
+import { ArrowLeft, Check, Download, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { RevealOrderDetailsButton } from "@/components/sections/RevealOrderDetailsButton";
+import { OrderActions } from "@/components/sections/OrderActions";
 import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import { getMyOrder } from "@/lib/orders";
+import { getMyReviewForOffer, isWithinEditWindow } from "@/lib/reviews";
 
 const paymentMethodLabel: Record<string, string> = {
   "apple-pay": "Apple Pay",
@@ -27,6 +28,8 @@ export default async function OrderSuccessPage({
 
   const offer = order.offer;
   const continueHref = offer ? `/games/${offer.game.slug}` : "/";
+
+  const myReview = offer ? await getMyReviewForOffer(offer.id) : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -93,7 +96,7 @@ export default async function OrderSuccessPage({
           </span>
         </div>
 
-        <RevealOrderDetailsButton order={order} />
+        <OrderActions order={order} myReview={myReview} />
 
         <a
           href={`/api/invoice/${order.id}`}
@@ -111,6 +114,43 @@ export default async function OrderSuccessPage({
           Continue browsing
         </Link>
       </section>
+
+      {myReview ? (
+        <section className="mx-auto flex w-full max-w-[640px] flex-col gap-3 rounded-[32px] border border-brand-bg-pill bg-white p-6">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-display text-[13px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
+              Your review
+            </span>
+            <span className="font-display text-[12px] text-brand-text-secondary-light">
+              <LocalDate iso={myReview.updatedAt} format="date" />
+              {myReview.updatedAt !== myReview.createdAt ? " (edited)" : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <Star
+                key={value}
+                className={`h-5 w-5 ${
+                  value <= myReview.rating
+                    ? "fill-brand-accent text-brand-accent"
+                    : "text-brand-text-tertiary-dark"
+                }`}
+                strokeWidth={1.5}
+              />
+            ))}
+          </div>
+          {myReview.body ? (
+            <p className="whitespace-pre-wrap font-display text-[14px] leading-5 text-brand-text-primary-light">
+              {myReview.body}
+            </p>
+          ) : null}
+          {!isWithinEditWindow(myReview.createdAt) ? (
+            <p className="font-display text-[11px] text-brand-text-tertiary-dark">
+              Reviews are locked 30 days after submission.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }
