@@ -11,6 +11,7 @@ import {
   getMyPurchaseForListing,
   getMySaleForListing,
 } from "@/lib/orders";
+import { getSellerReviewStats, getSellerReviewsPage } from "@/lib/reviews";
 import { resolveSellerProfile } from "@/lib/sellers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -54,6 +55,18 @@ export default async function OfferPage({
       : await getMyPurchaseForListing(offer.id)
     : null;
 
+  // Seller-wide review stats + recent reviews for the block under the
+  // listing description.
+  const [sellerStats, sellerReviews] = await Promise.all([
+    getSellerReviewStats(offer.seller.id),
+    getSellerReviewsPage({
+      sellerId: offer.seller.id,
+      sort: "newest",
+      page: 0,
+      limit: 5,
+    }),
+  ]);
+
   return (
     <div className="flex flex-col gap-8">
       <Link
@@ -72,7 +85,11 @@ export default async function OfferPage({
         <div className="flex flex-col gap-6 rounded-[32px] border border-brand-bg-pill bg-white p-6">
           <OfferGallery offer={offer} />
           <OfferDescription description={offer.description} />
-          <SellerCard seller={seller} reviews={offer.reviews} />
+          <SellerCard
+            seller={seller}
+            stats={sellerStats}
+            reviews={sellerReviews.items}
+          />
         </div>
         <BuyBox
           offer={offer}
