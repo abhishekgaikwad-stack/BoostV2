@@ -22,6 +22,7 @@ export type SellerReview = {
   createdAt: string;
   updatedAt: string;
   reviewerName: string;
+  reviewerAvatarUrl: string | null;
   offer: {
     id: string;
     title: string;
@@ -83,7 +84,7 @@ export async function getSellerReviewStats(
 
 const SELLER_REVIEW_SELECT = `
   id, rating, body, created_at, updated_at,
-  reviewer:profiles!reviewer_id(id, name),
+  reviewer:profiles!reviewer_id(id, name, avatar_url),
   offer:accounts(id, title, game:games(slug, name))
 `;
 
@@ -93,7 +94,11 @@ type SellerReviewRow = {
   body: string | null;
   created_at: string;
   updated_at: string;
-  reviewer: { id: string; name: string | null } | null;
+  reviewer: {
+    id: string;
+    name: string | null;
+    avatar_url: string | null;
+  } | null;
   offer:
     | {
         id: string;
@@ -166,6 +171,7 @@ export async function getSellerReviewsPage(input: {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       reviewerName: reviewerDisplayName(row.reviewer),
+      reviewerAvatarUrl: row.reviewer?.avatar_url ?? null,
       offer: row.offer
         ? {
             id: row.offer.id,
