@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { detectListingAttrs } from "@/lib/ai-detect";
+import { aiDetectPerUserDaily } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -11,6 +12,26 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  }
+
+  // Per-user 100/day cap. Sliding window — rolling 24h, not calendar day.
+  const quota = await aiDetectPerUserDaily.limit(user.id);
+  if (!quota.success) {
+    return NextResponse.json(
+      {
+        error: "Daily AI limit reached. Try again later.",
+        retryAt: quota.reset,
+        remaining: 0,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(quota.limit),
+          "X-RateLimit-Remaining": String(quota.remaining),
+          "X-RateLimit-Reset": String(quota.reset),
+        },
+      },
+    );
   }
 
   let body: { title?: unknown; description?: unknown };

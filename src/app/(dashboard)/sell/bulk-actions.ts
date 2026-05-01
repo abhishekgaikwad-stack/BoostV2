@@ -6,6 +6,7 @@ import type { AccountCredentials } from "@/lib/credentials";
 import { BULK_MAX_ROWS, type BulkListingRow } from "@/lib/csv";
 import { encrypt } from "@/lib/encryption";
 import { LISTING_LIMITS } from "@/lib/listing-limits";
+import { aiDetectPerUserDaily } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_MAX_EUR } from "@/lib/utils";
 
@@ -126,6 +127,14 @@ export async function createBulkListings(
       const havePlatform = r.platform && r.platform.trim().length > 0;
       const haveRegion = r.region && r.region.trim().length > 0;
       if (havePlatform && haveRegion) {
+        return { platform: r.platform, region: r.region };
+      }
+      // Same per-user 100/day quota as the single-listing form — the bulk
+      // path is just another caller. When the quota is exhausted mid-bulk,
+      // remaining rows skip detection and persist with whatever the seller
+      // had in the CSV (often null); they can edit later.
+      const quota = await aiDetectPerUserDaily.limit(user.id);
+      if (!quota.success) {
         return { platform: r.platform, region: r.region };
       }
       const result = await detectListingAttrs({
