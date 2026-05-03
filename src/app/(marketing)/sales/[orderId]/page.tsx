@@ -3,6 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocalDate } from "@/components/ui/LocalDate";
+import {
+  SELLER_COMMISSION_RATE,
+  commissionCents,
+  payoutCents,
+} from "@/lib/commission";
 import { gameImage } from "@/lib/images";
 import { getMySale } from "@/lib/orders";
 
@@ -86,13 +91,43 @@ export default async function SaleDetailPage({
           <Row label="Status" value={sale.status} />
         </dl>
 
-        <div className="flex items-baseline justify-between border-t border-brand-bg-pill pt-4">
-          <span className="font-display text-[13px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
-            Sale amount
-          </span>
-          <span className="font-display text-[28px] font-medium leading-9 text-brand-text-primary-light">
-            €{sale.price.toFixed(2)}
-          </span>
+        <div className="flex flex-col gap-3 border-t border-brand-bg-pill pt-4">
+          <div className="flex items-baseline justify-between">
+            <span className="font-display text-[13px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
+              Sale amount
+            </span>
+            <span className="font-display text-[28px] font-medium leading-9 text-brand-text-primary-light">
+              €{sale.price.toFixed(2)}
+            </span>
+          </div>
+
+          {(() => {
+            const priceCents = Math.round(sale.price * 100);
+            const commission = commissionCents(priceCents) / 100;
+            const payout = payoutCents(priceCents) / 100;
+            const ratePct = (SELLER_COMMISSION_RATE * 100).toFixed(0);
+            return (
+              <div className="flex flex-col gap-2 rounded-2xl bg-brand-bg-light p-4">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-[12px] text-brand-text-secondary-light">
+                    Platform commission ({ratePct}%)
+                  </span>
+                  <span className="font-display text-[13px] font-medium text-brand-discount">
+                    −€{commission.toFixed(2)}
+                  </span>
+                </div>
+                <div className="my-1 border-t border-brand-border-light" />
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-[13px] font-medium text-brand-text-primary-light">
+                    You receive
+                  </span>
+                  <span className="font-display text-[18px] font-medium text-brand-text-primary-light">
+                    €{payout.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
     </div>
