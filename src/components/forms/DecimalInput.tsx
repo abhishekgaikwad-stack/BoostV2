@@ -7,6 +7,12 @@ type Props = Omit<
   "type" | "value" | "defaultValue" | "onChange" | "max"
 > & {
   defaultValue?: string;
+  /** Controlled value. If provided (even ""), the parent owns state and
+   *  must update it via `onValueChange`. */
+  value?: string;
+  /** Called with the next value whenever a keystroke (or paste) is
+   *  accepted. Compatible with both controlled and uncontrolled modes. */
+  onValueChange?: (value: string) => void;
   /** Maximum digits after the decimal point. Defaults to 2. */
   decimals?: number;
   /** If set, keystrokes that would produce a value above `max` are rejected. */
@@ -14,21 +20,36 @@ type Props = Omit<
 };
 
 /**
- * Controlled numeric input that silently refuses keystrokes (or pastes) that
- * would produce more than `decimals` digits after the decimal point. Renders
- * as a text input with `inputMode="decimal"` so mobile keyboards still show
- * the numeric pad.
+ * Numeric text input that silently refuses keystrokes (or pastes) that
+ * would produce more than `decimals` digits after the decimal point.
+ * Renders as `type="text"` with `inputMode="decimal"` so mobile keyboards
+ * still show the numeric pad.
  *
- * Prefer this over `<input type="number" step="0.01">` when you want to
- * prevent the invalid value from ever reaching the form, instead of relying
- * on browser-level validation errors at submit time.
+ * Supports both modes:
+ *  - **Uncontrolled:** pass `defaultValue` (or nothing) and read the
+ *    final value from the form submission. Optionally subscribe via
+ *    `onValueChange` for live previews without taking over state.
+ *  - **Controlled:** pass `value` + `onValueChange` for full external
+ *    control. Use this when a sibling needs the current value (e.g. a
+ *    payout/commission preview), so we have a single source of truth
+ *    and avoid the controlled-input race that breaks via DOM listeners.
  */
 export const DecimalInput = forwardRef<HTMLInputElement, Props>(
   function DecimalInput(
-    { defaultValue = "", decimals = 2, max, ...rest },
+    {
+      defaultValue = "",
+      value: controlledValue,
+      onValueChange,
+      decimals = 2,
+      max,
+      ...rest
+    },
     ref,
   ) {
-    const [value, setValue] = useState(defaultValue);
+    const isControlled = controlledValue !== undefined;
+    const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue);
+    const value = isControlled ? controlledValue : uncontrolledValue;
+
     // Matches optional leading digits, optional dot, and up to `decimals`
     // digits after. Also allows an in-progress "12." (trailing dot) so the
     // user can type the fractional part character-by-character.
@@ -48,7 +69,8 @@ export const DecimalInput = forwardRef<HTMLInputElement, Props>(
             const num = Number.parseFloat(raw);
             if (Number.isFinite(num) && num > max) return;
           }
-          setValue(raw);
+          if (!isControlled) setUncontrolledValue(raw);
+          onValueChange?.(raw);
         }}
         {...rest}
       />
