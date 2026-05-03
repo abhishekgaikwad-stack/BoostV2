@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Sparkles } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import {
   type CreateListingState,
   createListing,
@@ -11,6 +11,8 @@ import { CredentialsFieldset } from "@/components/forms/CredentialsFieldset";
 import { DecimalInput } from "@/components/forms/DecimalInput";
 import { ImageUploader } from "@/components/forms/ImageUploader";
 import { useAutoDetectListingAttrs } from "@/components/forms/useAutoDetectListingAttrs";
+import { useInputValue } from "@/components/forms/useInputValue";
+import { CommissionBreakdown } from "@/components/sections/CommissionBreakdown";
 import { DISCOUNT_MAX_HOURS } from "@/lib/discount";
 import { LISTING_LIMITS } from "@/lib/listing-limits";
 import type { Game } from "@/types";
@@ -34,6 +36,9 @@ export function CreateListingForm({ games }: { games: Game[] }) {
   } = useAutoDetectListingAttrs();
   const titleLength = useCharLength(titleRef);
   const descriptionLength = useCharLength(descriptionRef);
+  const priceRef = useRef<HTMLInputElement>(null);
+  const priceText = useInputValue(priceRef);
+  const priceEur = Number.parseFloat(priceText);
 
   return (
     <form
@@ -128,6 +133,7 @@ export function CreateListingForm({ games }: { games: Game[] }) {
       <div className="grid grid-cols-2 gap-4">
         <Field label="Selling price (€, max 1000)">
           <DecimalInput
+            ref={priceRef}
             name="price"
             required
             max={1000}
@@ -143,6 +149,8 @@ export function CreateListingForm({ games }: { games: Game[] }) {
           />
         </Field>
       </div>
+
+      <CommissionBreakdown priceEur={priceEur} />
 
       <fieldset className="flex flex-col gap-3 rounded-2xl border border-brand-border-light p-4">
         <legend className="font-display text-[11px] font-medium uppercase tracking-[0.06em] text-brand-text-secondary-light">
