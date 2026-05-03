@@ -5,24 +5,32 @@ import {
 } from "@/lib/commission";
 
 /**
- * Live preview of the seller's payout net of commission. Renders only
- * when priceEur > 0; collapses silently otherwise so an empty form
- * stays clean.
+ * Live preview of the seller's payout net of commission. Always renders
+ * so the seller can see the contract up front; shows a placeholder when
+ * no price has been typed yet.
  */
 export function CommissionBreakdown({ priceEur }: { priceEur: number }) {
-  if (!Number.isFinite(priceEur) || priceEur <= 0) return null;
+  const ratePct = (SELLER_COMMISSION_RATE * 100).toFixed(0);
+  const hasPrice = Number.isFinite(priceEur) && priceEur > 0;
+
+  if (!hasPrice) {
+    return (
+      <div className="rounded-2xl border border-brand-border-light bg-brand-bg-light p-4">
+        <p className="font-display text-[12px] leading-5 text-brand-text-secondary-light">
+          Enter a selling price to preview your {ratePct}% platform
+          commission and payout.
+        </p>
+      </div>
+    );
+  }
 
   const priceCents = Math.round(priceEur * 100);
   const commission = commissionCents(priceCents) / 100;
   const payout = payoutCents(priceCents) / 100;
-  const ratePct = (SELLER_COMMISSION_RATE * 100).toFixed(0);
 
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-brand-border-light bg-brand-bg-light p-4">
-      <Row
-        label="Selling price"
-        value={`€${priceEur.toFixed(2)}`}
-      />
+      <Row label="Selling price" value={`€${priceEur.toFixed(2)}`} />
       <Row
         label={`Platform commission (${ratePct}%)`}
         value={`−€${commission.toFixed(2)}`}
