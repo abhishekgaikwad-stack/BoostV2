@@ -1,22 +1,13 @@
 import Image from "next/image";
 import type { Offer } from "@/types";
+import { ImageCarousel } from "@/components/sections/ImageCarousel";
 import { gameImage } from "@/lib/images";
 
 export function OfferGallery({ offer }: { offer: Offer }) {
-  const hero = offer.images[0];
   return (
     <section className="grid gap-4 md:grid-cols-[509fr_314fr]">
       <div className="relative aspect-[509/287] w-full overflow-hidden rounded-2xl bg-brand-bg-pill">
-        {hero ? (
-          <Image
-            src={hero}
-            alt={offer.title}
-            fill
-            sizes="(min-width: 768px) 60vw, 100vw"
-            className="object-cover"
-            priority
-          />
-        ) : null}
+        <ImageCarousel images={offer.images} alt={offer.title} />
       </div>
       <div className="flex items-center gap-4 self-start rounded-2xl p-4">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-3xl">
