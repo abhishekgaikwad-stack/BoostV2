@@ -13,22 +13,42 @@ they're terse but load-bearing. Everything below is **in addition to** those.
   unfamiliar APIs**.
 - **Auth + DB:** Supabase (Postgres with RLS). Live tables:
   `auth.users`, `public.profiles`, `public.games`, `public.accounts`,
-  `public.credentials`, `public.offer_reviews`, `public.wishlists`.
-  Full schema + RLS intent in `BoostV2_DB_Architecture.md`. Reads/writes go
-  through the Supabase JS client; no ORM.
+  `public.credentials`, `public.offer_reviews`, `public.wishlists`,
+  `public.orders`. Full schema + RLS intent in `BoostV2_DB_Architecture.md`.
+  Reads/writes go through the Supabase JS client; no ORM.
 - **Styling:** Tailwind v4 with a brand token palette
   (`brand-accent`, `brand-bg-pill`, `brand-bg-surface`, `brand-border-light`,
   `brand-text-primary-light`, `brand-text-secondary-light`,
   `brand-text-tertiary-dark`, `brand-discount`, `brand-success`, …).
   Font: `font-display` + `font-mono`. Sizes written as arbitrary values
-  (`text-[14px]`, `leading-5`), corner radii favour `rounded-xl`, `rounded-2xl`,
-  `rounded-3xl`, `rounded-[32px]`.
+  (`text-[14px]`, `leading-5`). Primary buttons on light bg are `bg-black
+  text-white hover:bg-neutral-800 rounded-xl`; on dark bg they're the
+  brand-accent gradient (BuyBox + CheckoutSummary). Corner radii: 12px
+  for buttons, `rounded-2xl` for inputs/inner cards, `rounded-3xl` /
+  `rounded-[32px]` for outer cards.
 - **Images:** S3 + presigned PUT URLs for direct-to-browser uploads. Public URLs
   validated on the server to start with `https://`.
-- **Payments:** Stripe (scaffolded in `src/lib/stripe.ts`).
+- **Payments:** Stripe (scaffolded in `src/lib/stripe.ts`). `place_order`
+  currently inserts orders as `PAID` immediately — real Stripe Checkout
+  Session + webhooks + Connect payouts are unwired. 5% commission shown
+  on the seller side via `src/lib/commission.ts` is display-only until
+  Connect lands.
 - **Encryption:** AES-256-GCM via `node:crypto`. Key is
-  `CREDENTIALS_ENCRYPTION_KEY`, server-only.
+  `CREDENTIALS_ENCRYPTION_KEY`, server-only. Buyer reveals plaintext via
+  `revealOrderCredentials` action → `reveal_credentials` RPC (security
+  definer) → decrypt in Node.
 - **CSV:** `papaparse` (client preview + server re-validation).
+- **AI:** Anthropic Claude Haiku 4.5 for listing platform/region
+  auto-detect via `src/lib/ai-detect.ts`. Key is `ANTHROPIC_API_KEY`,
+  server-only. Tool-use call returns strict JSON; surfaces from the
+  blur-trigger on the listing form **and** per-row in the bulk CSV
+  action when columns are blank.
+- **Rate limiting:** Upstash Redis (sliding-window) via
+  `src/lib/rate-limit.ts`. Currently caps AI detect at **100/day per
+  user**. Env vars: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
+- **PDFs:** `@react-pdf/renderer` (Node-only) for the buyer invoice at
+  `/api/invoice/[orderId]`. Boost logo redrawn as `<Svg>` primitives so
+  the PDF needs no remote image fetch.
 
 ## 2. Repo, deploy, workflow
 
@@ -94,18 +114,46 @@ src/
     (dashboard)/            authenticated flows
       sell/                 create + bulk CSV upload (actions.ts, bulk-actions.ts)
       user/
-        currently-selling/[offerId]/   edit / delete a listing
+        currently-selling/[offerId]/   edit / delete (gates on AVAILABLE)
+        orders/             buyer purchase list (My orders)
+        sales/              seller sales list
+        transactions/       seller transaction log (currently same data as sales)
       profile/              account + seller toggle + avatar
     (marketing)/            public pages
-      games/[slug]/…        game detail + offer detail
-      seller/[storeId]/     seller profile
+      games/[slug]/[id]     PDP — gallery + description + SellerCard
+                            (identity + real seller-wide reviews)
+      seller/[storeId]/     seller profile (?tab=listings|reviews,
+                            ?sort=newest|highest|lowest, ?page=N)
+      checkout/[offerId]/   Buy Now → payment-method selector + summary
+      orders/[orderId]/     buyer receipt + Mark-as-received + invoice
+      sales/[orderId]/      seller per-sale detail (no buyer info)
       wishlist/             signed-in-only wishlist page
-    api/                    presigned-URL endpoints, avatar, whoami
+    api/
+      auth/callback         OAuth return
+      uploads/              avatar + listing-image presigned URLs
+      profile/              avatar + account-type
+      whoami/               session debug
+      invoice/[orderId]/    Node runtime — streams PDF via @react-pdf/renderer
+      ai/detect-listing-attrs/  Claude Haiku tool-use, rate-limited
   components/
+    auth/                   AuthPromptProvider (login popup orchestrator)
     cards/                  SquareProductCard, ProductCard, SellerListingRow…
-    forms/                  DecimalInput, ImageUploader, CredentialsFieldset…
-    sections/               CreateListingForm, EditListingForm, carousels, UserNav…
-    ui/                     primitives (buttons, dialogs)
+    forms/                  DecimalInput (controlled-mode capable),
+                            CharCounter + useCharLength,
+                            CredentialsFieldset, useAutoDetectListingAttrs,
+                            ImageUploader
+    sections/               CreateListingForm, EditListingForm,
+                            CheckoutBoard / CheckoutSummary,
+                            PaymentMethodSelector,
+                            BuyBox (status + viewer branching),
+                            SellerCard (identity + seller-wide review block),
+                            SellerReviewsTab, OrderActions,
+                            RevealOrderDetailsDialog (multi-stage: confirm →
+                              reveal → confirm-received), ReviewDialog,
+                            CommissionBreakdown, ImageCarousel,
+                            OrderCard / OrderListRow…
+    ui/                     primitives (LocalDate for client-TZ rendering,
+                            ConfirmDialog, etc.)
     wishlist/               WishlistProvider + useWishlist hook
   lib/
     credentials.ts          encrypt/save/load per-listing creds
@@ -117,6 +165,23 @@ src/
     sellers.ts              read queries for seller profile page
     wishlist.ts             getMyWishlistIds, getMyWishlistPage
     wishlist-actions.ts     toggleWishlist server action
+    orders.ts               getMyOrder, getMySale, getMyPurchases, getMySales,
+                            getMyPurchaseForListing, getMySaleForListing
+    orders-actions.ts       placeOrder (calls place_order RPC)
+    orders-reveal.ts        revealOrderCredentials (calls reveal_credentials
+                            RPC, decrypts on Node side)
+    orders-confirm.ts       confirmOrderReceived (calls mark_order_received)
+    reviews.ts              getMyReviewForOffer, getSellerReviewStats,
+                            getSellerReviewsPage
+    reviews-actions.ts      submitReview (calls submit_review RPC)
+    review-types.ts         MyReview type + isWithinEditWindow (client-safe,
+                            no server imports)
+    invoice.tsx             InvoiceDocument + renderInvoicePdf (Node-only)
+    ai-detect.ts            detectListingAttrs (server-only Anthropic call)
+    rate-limit.ts           Upstash limiters (aiDetectPerUserDaily)
+    commission.ts           SELLER_COMMISSION_RATE = 0.05 + cent helpers
+    listing-limits.ts       LISTING_LIMITS map + checkLimit helper
+    discount.ts             flash-discount validation helpers
     s3.ts                   S3 client + presign + delete
     supabase/               server + browser clients
     utils.ts                cn, PRICE_MAX_EUR, PRICE_CAP_CENTS, helpers
@@ -126,15 +191,28 @@ BoostV2_DB_Architecture.md  live-DB reference doc (tables, RLS, RPC, indexes)
 
 ## 5. Key constants & decisions
 
-| Constant              | Value     | Source                                |
-|-----------------------|-----------|---------------------------------------|
-| `PRICE_MAX_EUR`       | `1000`    | `src/lib/utils.ts`                    |
-| `PRICE_CAP_CENTS`     | `100_000` | `src/lib/utils.ts`                    |
-| `BULK_MAX_ROWS`       | `500`     | `src/lib/csv.ts`                      |
-| Default listing limit | `24`      | `src/lib/offers.ts` (`DEFAULT_LISTING_LIMIT`) |
-| Wishlist page limit   | `48`      | `src/app/(marketing)/wishlist/page.tsx` |
-| Max images/listing    | `10`      | server actions                        |
-| Store ID start        | `100`     | Postgres sequence + trigger on `profiles` |
+| Constant                     | Value     | Source                                |
+|------------------------------|-----------|---------------------------------------|
+| `PRICE_MAX_EUR`              | `1000`    | `src/lib/utils.ts` (also CHECK in DB) |
+| `PRICE_CAP_CENTS`            | `100_000` | `src/lib/utils.ts`                    |
+| `SELLER_COMMISSION_RATE`     | `0.05`    | `src/lib/commission.ts`               |
+| `BULK_MAX_ROWS`              | `500`     | `src/lib/csv.ts`                      |
+| `LISTING_LIMITS.title`       | `200`     | `src/lib/listing-limits.ts`           |
+| `LISTING_LIMITS.description` | `1000`    | `src/lib/listing-limits.ts`           |
+| `LISTING_LIMITS.platform`    | `50`      | `src/lib/listing-limits.ts`           |
+| `LISTING_LIMITS.region`      | `100`     | `src/lib/listing-limits.ts`           |
+| `LISTING_LIMITS.credLogin`/`Password`/`Email`/`EmailPassword` | `100` each | `src/lib/listing-limits.ts` |
+| `LISTING_LIMITS.credNotes`   | `500`     | `src/lib/listing-limits.ts`           |
+| Review body max              | `1500`    | `src/lib/reviews-actions.ts` + DB CHECK + `submit_review` RPC |
+| Review edit window           | `30 days` | RPC + `isWithinEditWindow` (`src/lib/review-types.ts`) |
+| AI detect rate limit         | `100/day per user` | `src/lib/rate-limit.ts` (sliding window) |
+| Default listing limit        | `24`      | `src/lib/offers.ts` (`DEFAULT_LISTING_LIMIT`) |
+| Default review page limit    | `10`      | `src/lib/reviews.ts` (`DEFAULT_REVIEW_LIMIT`) |
+| Wishlist page limit          | `48`      | `src/app/(marketing)/wishlist/page.tsx` |
+| Max images/listing           | `10`      | server actions                        |
+| Order number format          | `o-XXXXXXXX` (8 digits) | `place_order` RPC           |
+| Transaction id format        | `t-XXXXXXXXXXXX` (12 digits) | `place_order` RPC      |
+| Store ID start               | `100`     | `store_id_seq` + `ensure_store_id()` trigger |
 
 ## 6. Supabase / DB notes
 
@@ -143,36 +221,67 @@ Full schema is documented in `BoostV2_DB_Architecture.md`. SQL changes go in
 by hand in the Supabase SQL editor. **Never edit a shipped migration** — if
 the change was wrong, write the next numbered file that fixes it.
 
+**Migration history is reconstructed.** `0001_baseline.sql` was inferred
+from app code; `0014_baseline_reconcile.sql` brings it in line with what's
+actually running in prod (real `account_status` ENUM, `offer_reviews.seller_id`,
+custom triggers, `accounts.updated_at`, etc.). Always reconcile via
+`pg_dump --schema-only` against prod, not from the baseline file.
+
 Tables and their roles:
 
-- `public.profiles` — one row per auth user. `is_seller`, display name,
-  avatar, `store_id` (auto-assigned from sequence starting at 100 via a
-  trigger).
-- `public.games` — static game catalog, keyed by unique `slug`.
-- `public.accounts` — the listings. Key columns: `id`, `seller_id`, `game_id`,
-  `title`, `description`, `price` (cents), `old_price` (cents nullable),
-  `images` (text[]), `status` (`AVAILABLE` | `RESERVED` | `SOLD`),
-  `offer_ends_at`, `created_at`. Composite indexes cover the three hot
-  listing queries (see migration `0003`):
+- `public.profiles` — one row per auth user. `email NOT NULL`, `name`,
+  `avatar_url` (S3), `is_seller`, `store_id` (assigned from `store_id_seq`
+  on first `is_seller=true` flip via the `ensure_store_id()` trigger),
+  `created_at`, `updated_at`.
+- `public.games` — static game catalog, keyed by unique `slug`. Includes
+  `created_at`.
+- `public.accounts` — the listings. Real `account_status` ENUM, plus
+  `platform`/`region` (per `0009`), `discount_price`/`discount_ends_at`
+  (per `0005`), `updated_at` (per `0014`). Composite indexes cover the
+  three hot listing queries (see `0003`):
   `(game_id, status, created_at DESC, id DESC)`,
   `(seller_id, status, created_at DESC, id DESC)`,
   `(status, created_at DESC, id DESC)` — the `id DESC` is the cursor
   tie-breaker.
-- `public.credentials` — AES-256-GCM ciphertext blob, 1:1 with `accounts` by
-  `account_id`. Plaintext never reaches the DB.
-- `public.offer_reviews` — buyer reviews on a listing (currently unused UI
-  but read by `fetchOfferReviews`).
-- `public.wishlists` — join table `(user_id, account_id)` with composite PK;
-  RLS restricts rows to `auth.uid()`.
+- `public.credentials` — AES-256-GCM ciphertext blob, 1:1 with `accounts`
+  by `account_id`. Plaintext never reaches the DB. Buyer reads via the
+  `reveal_credentials` RPC (gated on order ownership).
+- `public.offer_reviews` — buyer reviews. `seller_id` is denormalized
+  from the listing for fast seller-side queries. UNIQUE
+  `(offer_id, reviewer_id)`, body `≤ 1500` chars, 30-day edit window.
+  All writes via `submit_review` RPC.
+- `public.wishlists` — join table `(user_id, account_id)` with composite
+  PK; RLS restricts rows to `auth.uid()`.
+- `public.orders` — buyer→listing transactional record. `order_number`
+  (`o-XXXXXXXX`) and `transaction_id` (`t-XXXXXXXXXXXX`) are the
+  user-facing IDs (URL params, displayed values, cursor pagination); the
+  internal UUID `id` is invisible to the app via SELECT alias
+  `id:order_number`. `revealed_at` + `marked_received_at` +
+  `received_checks` track the post-purchase flow.
 
-- **RPC:** `create_listings_bulk(p_game_id uuid, p_listings jsonb)` performs
-  an atomic multi-row insert; all rows persist or none do. If the function
-  is missing ("Could not find the function…" error), apply the latest
-  `create_listings_bulk` body from `db/migrations/` in the SQL editor.
+- **RPCs (all SECURITY DEFINER):**
+  - `create_listings_bulk(p_game_id, p_listings jsonb)` — atomic CSV
+    bulk insert.
+  - `place_order(p_account_id, p_payment_method)` — atomic checkout;
+    inserts order as PAID (stub), flips listing to SOLD, returns
+    `order_number` + `transaction_id`.
+  - `reveal_credentials(p_order_number)` — buyer-side credential read;
+    flips `revealed_at`; returns ciphertext for Node-side decrypt.
+  - `mark_order_received(p_order_number, p_checks)` — locks
+    `marked_received_at` + records the 4 confirmation flags.
+  - `submit_review(p_offer_id, p_rating, p_body)` — verified-buyer
+    review create-or-update with 30-day edit window.
+
+  If you see `Could not find the function …` at runtime, the function
+  is missing from the database — reapply the latest body from
+  `db/migrations/` in the SQL editor and run
+  `notify pgrst, 'reload schema';`.
+
 - **RLS is on everywhere.** Server actions use the SSR Supabase client in
   `lib/supabase/server.ts` (cookies → user JWT). When in doubt, assert
   ownership explicitly (e.g. `existing.seller_id !== user.id`) even though
   RLS would also block — the explicit check yields a cleaner error message.
+  See `BoostV2_DB_Architecture.md` §6 for the full per-table policy map.
 
 ## 7. Common patterns
 
@@ -215,6 +324,92 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    `startTransition`, and rolls back on `{ error }`.
 4. Consuming components (e.g. `ProductCard`) call the hook — no prop
    threading from pages.
+
+### Buyer post-purchase flow
+1. **Buy Now** on PDP (`BuyBox`) → navigate to `/checkout/[offerId]`.
+   `BuyBox` branches on `isOwner` + `offer.status` + `relatedOrderId`
+   so sellers see "Manage listing" / "View sale" and the buyer of a
+   SOLD listing sees "View receipt".
+2. **Checkout** (`CheckoutBoard` orchestrates `PaymentMethodSelector` +
+   `CheckoutSummary`): pick payment method, hit Proceed to Pay →
+   `placeOrder` server action → `place_order` RPC → navigate to
+   `/orders/[orderId]` (where `orderId` is the public `order_number`).
+3. **Order detail** (`/orders/[orderId]`) renders the receipt + the
+   `OrderActions` bar (replaces the old standalone reveal button).
+   `OrderActions` owns both the reveal-dialog and review-dialog state
+   and chains them: after the buyer confirms receipt, it auto-opens
+   the review popup if no review exists yet.
+4. **Reveal** (`RevealOrderDetailsDialog`): three stages
+   `confirm` → `revealing` → `revealed`. Pre-reveal the buyer ticks
+   platform/region confirmation; post-reveal credentials are shown
+   (server-decrypted, never as static props). The bottom CTA flips
+   from `Mark as received` (gradient) to a green
+   `Marked as received on <date>` indicator once
+   `orders.marked_received_at` is set.
+5. **Mark as received** swaps the dialog to a 4-checkbox
+   `confirm-received` stage (Account info works / Matches the offer
+   description / Access to email / Password changed — email row
+   hidden when no email cred). Submit calls `confirmOrderReceived`.
+6. **Review** (`ReviewDialog`): 5-star rating + optional ≤ 1500-char
+   body. `submitReview` calls `submit_review` RPC; 30-day edit window.
+   Reviewer only sees their existing review on the order page (real
+   data), and the seller's profile + listing PDP show all the
+   seller's reviews via `getSellerReviewsPage` /
+   `getSellerReviewStats` (no mock).
+
+### AI listing auto-detect
+1. Single-listing form: title + description blurs trigger
+   `useAutoDetectListingAttrs` → POST `/api/ai/detect-listing-attrs`
+   only if `platform` or `region` is empty.
+2. Bulk CSV: `bulk-actions.ts` runs `detectListingAttrs` per row in a
+   capped concurrency fan-out (`runWithLimit`, default 5). Same
+   per-user 100/day quota; rows that exhaust the quota persist with
+   whatever the seller filled in.
+3. Server-only via `src/lib/ai-detect.ts` — Anthropic key never
+   leaves Node. Strict JSON guaranteed by Claude tool-use.
+
+### Rate limiting
+1. `src/lib/rate-limit.ts` exposes `aiDetectPerUserDaily` (Upstash
+   sliding-window, 100/day, keyed by `auth.uid()`).
+2. Both call sites (`/api/ai/detect-listing-attrs` and
+   `bulk-actions.ts`) call `.limit(user.id)` BEFORE the Anthropic
+   request. The route returns 429 with
+   `X-RateLimit-Limit/Remaining/Reset` headers; the bulk action
+   degrades gracefully per-row.
+3. Fail-loud env: `Redis.fromEnv()` throws on import if
+   `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` aren't set —
+   silent passthrough would defeat the limit.
+
+### Live commission preview
+1. `SELLER_COMMISSION_RATE = 0.05` + cent-precise `commissionCents` /
+   `payoutCents` in `src/lib/commission.ts`. Single source of truth
+   for when Stripe Connect lands.
+2. `CreateListingForm` / `EditListingForm` hold `priceText` in
+   `useState`, pass `value` + `onValueChange` to the price
+   `<DecimalInput>` (controlled mode). `<CommissionBreakdown>`
+   renders below the price grid — placeholder when empty,
+   3-row breakdown when a price exists.
+3. Same breakdown renders below "Sale amount" on `/sales/[orderId]`
+   so the seller sees what they actually netted.
+
+### Char-limit feedback (CharCounter)
+1. `LISTING_LIMITS` in `src/lib/listing-limits.ts` is the shared
+   source of truth — same numbers gate the client UI and the server
+   `checkLimit()` validation.
+2. `<CharCounter length max />` renders **only when `length > max`**
+   (intentionally invisible until breached), in
+   `text-brand-discount`. `useCharLength(ref)` listens to native
+   `input` events to track length without making the input
+   controlled.
+3. Wired into title / description / platform / region / all 5
+   credential fields.
+
+### URL-driven tabs (seller profile)
+1. `/seller/[storeId]?tab=listings|reviews` server-renders the
+   appropriate content. Tabs are `<Link>`s, not client state.
+2. `?sort=newest|highest|lowest` and `?page=N` round-trip via the
+   URL too, so deep-linked review feeds (e.g. PDP "See all reviews")
+   land on the right state.
 
 ## 8. User preferences learned in conversation
 

@@ -5,10 +5,13 @@ written as SQL files in `db/migrations/` (see that folder's README for the
 workflow) and applied by hand via the Supabase SQL editor. Runtime reads and
 writes go through the Supabase JS client.
 
-The `db/migrations/0001_baseline.sql` file is a **reconstructed** baseline —
-it was written from application code, not dumped from Postgres. Before
-treating it as authoritative, run the introspection queries in
-`db/migrations/README.md` against the live DB and reconcile any drift.
+`db/migrations/0001_baseline.sql` was originally **reconstructed** from
+application code, not dumped from Postgres. Migration
+`0014_baseline_reconcile.sql` brings the migration history in line with
+what's actually running in prod (real ENUM for `account_status`, the
+`offer_reviews.seller_id` column, custom triggers, etc.) — apply it after
+0001 on any fresh DB. Future migrations should match prod exactly via
+`pg_dump --schema-only` rather than reinventing.
 
 Images are stored in **S3** (direct presigned uploads), not Supabase Storage.
 
@@ -62,12 +65,14 @@ One row per auth user. Created by trigger on `auth.users` insert (signup).
 
 | Column        | Type        | Notes                                             |
 |---------------|-------------|---------------------------------------------------|
-| `id`          | `uuid` PK   | FK → `auth.users.id`                              |
-| `name`        | `text`      | Display name                                      |
-| `avatar_url`  | `text`      | Public S3 URL (https://…)                         |
+| `id`          | `uuid` PK   | FK → `auth.users.id`, on delete cascade           |
+| `email`       | `text` UNIQUE NOT NULL | Mirrored from `auth.users.email` by signup trigger. |
+| `name`        | `text`      | Display name. Trigger seeds from `raw_user_meta_data->>full_name/name` or email prefix on signup. |
+| `avatar_url`  | `text`      | Public S3 URL (https://…). Trigger seeds from `raw_user_meta_data->>boost_avatar_url/avatar_url`. |
 | `is_seller`   | `boolean`   | Toggle flipped from `/profile` page               |
-| `store_id`    | `int`       | Unique per seller. Auto-assigned on flip via sequence starting at 100 |
+| `store_id`    | `int` UNIQUE | Assigned from `store_id_seq` (start 100) by `ensure_store_id()` trigger when `is_seller` first flips true. |
 | `created_at`  | `timestamptz` | Default `now()`                                 |
+| `updated_at`  | `timestamptz` | Default `now()`. Bumped by `ensure_store_id()` on every insert/update. |
 
 Access patterns:
 - `src/app/(dashboard)/profile/page.tsx` — read self
@@ -85,10 +90,11 @@ Static catalog of games buyers can browse. Seeded manually.
 | Column       | Type     | Notes                         |
 |--------------|----------|-------------------------------|
 | `id`         | `uuid` PK | Default `gen_random_uuid()` |
-| `slug`       | `text`   | Unique — used in all URLs     |
+| `slug`       | `text` UNIQUE | Used in all URLs (`/games/<slug>`). |
 | `name`       | `text`   | Display name                  |
 | `subtitle`   | `text`   | Short tagline (nullable)      |
 | `cover`      | `text`   | Image key or fallback slug    |
+| `created_at` | `timestamptz` | Default `now()`           |
 
 Access: `src/lib/offers.ts::listGames`, `findGameBySlug`, and inside server
 actions to re-validate that a submitted `game_id` actually exists.
@@ -102,21 +108,22 @@ historical ("accounts" the product, not a user account).
 
 | Column            | Type                     | Notes                                                              |
 |-------------------|--------------------------|--------------------------------------------------------------------|
-| `id`              | `uuid` / `cuid` PK        | Generated server-side                                              |
-| `game_id`         | FK → `games.id`           | Required                                                           |
-| `seller_id`       | FK → `auth.users.id` (uuid) | Required. Ownership check enforced by RLS **and** by server action before update/delete |
+| `id`              | `uuid` PK                 | Default `gen_random_uuid()`                                       |
+| `game_id`         | FK → `games.id` ON DELETE RESTRICT | Required                                                  |
+| `seller_id`       | FK → `profiles.id` ON DELETE RESTRICT | Required. Ownership enforced by RLS **and** by server action before update/delete. |
 | `title`           | `text`                    | Required                                                           |
 | `description`     | `text`                    | Nullable                                                           |
-| `price`           | `int`                     | **Cents**. `0 < price ≤ 100_000` (€1000 cap).                     |
+| `price`           | `int`                     | **Cents**. CHECK `0 ≤ price ≤ 100_000` (€1000 cap, re-enforced in 0014). |
 | `old_price`       | `int`                     | **Cents**, nullable. When set, must be `>= price`. No upper cap.  |
 | `discount_price`  | `int`                     | **Cents**, nullable. Flash-discount price; see below.             |
 | `discount_ends_at`| `timestamptz`             | Nullable; when set, pairs with `discount_price` (CHECK constraint).|
 | `images`          | `text[]`                  | Array of public S3 URLs. Server filters to `https://` prefix and slices to 10. |
-| `status`          | enum-as-text              | `AVAILABLE` \| `RESERVED` \| `SOLD`. Defaults to `AVAILABLE`.       |
+| `status`          | `account_status` ENUM     | `AVAILABLE` \| `RESERVED` \| `SOLD`. Real Postgres enum (per 0014). Defaults to `AVAILABLE`. |
 | `platform`        | `text`                    | Free-text qualifier (e.g. `PC`, `PS5`). Nullable. Buyer confirms it pre-reveal. |
 | `region`          | `text`                    | Free-text qualifier (e.g. `NA`, `EU`). Nullable. Buyer confirms it pre-reveal. |
 | `offer_ends_at`   | `timestamptz`             | Optional countdown deadline (legacy, not exposed in seller forms). |
 | `created_at`      | `timestamptz`             | Default `now()`                                                    |
+| `updated_at`      | `timestamptz`             | Default `now()`. Bumped by `on_accounts_update` trigger via `set_updated_at()`. |
 
 **Flash discounts (`discount_price` + `discount_ends_at`, migration 0005):**
 Seller-initiated short-term discount (max 72h). While `discount_ends_at` is
@@ -161,29 +168,64 @@ Decrypted payload shape (`AccountCredentials` in `src/lib/credentials.ts`):
 { login?: string; password?: string; email?: string; emailPassword?: string; notes?: string }
 ```
 
-On delete, the row should cascade with the listing (either via FK `onDelete:
-Cascade` or by explicit cleanup in the delete action).
+On delete: FK `account_id` is `ON DELETE CASCADE`, so credentials drop
+when the listing does.
 
-Access: `src/lib/credentials.ts` (read, save, delete helpers). **Never** log
-or return `encrypted_data` to the browser.
+Access:
+- `src/lib/credentials.ts` — seller-side read / save / delete helpers
+  (RLS gates by `seller_id = auth.uid()`).
+- `src/lib/orders-reveal.ts::revealOrderCredentials` — buyer-side
+  decryption path. Calls the `reveal_credentials` RPC (security
+  definer) which bypasses the seller-only RLS, gated on the caller
+  having an order on the listing. Plaintext is decrypted on the Node
+  side and returned to the buyer's reveal popup; never touches plpgsql.
+
+**Never** log or return `encrypted_data` (or the decrypted plaintext) in
+shared logs / response bodies outside the dialog return value.
 
 ---
 
 ### `public.offer_reviews`
 
-Buyer reviews on a specific listing. Currently empty but wired up in read
-queries.
+Buyer reviews on a specific listing. Created exclusively via the
+`submit_review` RPC. Updates limited to a 30-day edit window from
+creation. See `db/migrations/0013_offer_reviews_constraints.sql`.
 
 | Column         | Type        | Notes                                              |
 |----------------|-------------|----------------------------------------------------|
-| `id`           | PK          | Generated                                          |
-| `offer_id`     | FK → `accounts.id` | Required                                    |
-| `reviewer_id`  | FK → `auth.users.id` (uuid) | Named FK `offer_reviews_reviewer_id_fkey` (explicit join used in code) |
-| `rating`       | `int`       | 1–5                                                |
-| `body`         | `text`      | Nullable                                           |
+| `id`           | `uuid` PK   | Default `gen_random_uuid()`                        |
+| `offer_id`     | FK → `accounts.id` ON DELETE SET NULL | Nullable. If a listing ever gets deleted (gated, but possible), the review survives orphaned. |
+| `seller_id`    | FK → `profiles.id` ON DELETE CASCADE NOT NULL | Denormalized from the listing so seller-side queries don't need a join. |
+| `reviewer_id`  | FK → `profiles.id` ON DELETE CASCADE NOT NULL | Named FK `offer_reviews_reviewer_id_fkey` (explicit join used in code). |
+| `rating`       | `int`       | CHECK `1 ≤ rating ≤ 5`                             |
+| `body`         | `text`      | Nullable. CHECK `char_length ≤ 1500`.              |
 | `created_at`   | `timestamptz` | Default `now()`                                  |
+| `updated_at`   | `timestamptz` | Default `now()`. Bumped by `offer_reviews_touch_updated_at` trigger via `touch_updated_at()`. |
 
-Access: `src/lib/offers.ts::fetchOfferReviews`.
+Constraints:
+- `offer_reviews_unique_buyer` UNIQUE `(offer_id, reviewer_id)` — one
+  review per buyer per listing. Subsequent submits become updates of
+  the same row (within the 30-day edit window).
+
+Indexing:
+- `idx_reviews_seller_created` on `(seller_id, created_at DESC)` — covers
+  the seller profile reviews tab + PDP "recent 5" preview.
+- `idx_reviews_offer` on `(offer_id)` — kept for offer-specific reads.
+
+RLS:
+- Public read (`reviews are public`).
+- `reviewer inserts own review` — INSERT with `reviewer_id = auth.uid()`.
+- `offer_reviews_update_own` — UPDATE only by the reviewer.
+- `offer_reviews_delete_own` — DELETE only by the reviewer.
+- All writes practically flow through `submit_review` (security
+  definer), which gates on the caller having an order on the listing
+  and enforces the 30-day edit window.
+
+Access:
+- `src/lib/reviews.ts` — `getMyReviewForOffer`, `getSellerReviewStats`,
+  `getSellerReviewsPage` (server reads).
+- `src/lib/reviews-actions.ts` — `submitReview` (server action calling
+  the RPC).
 
 ---
 
@@ -231,6 +273,8 @@ One row per buyer→listing transaction. Created exclusively via the
 | `payment_method`  | `text`        | CHECK ∈ `apple-pay`, `google-pay`, `visa`, `mastercard`, `paypal`. |
 | `status`          | `text`        | CHECK ∈ `PENDING`, `PAID`, `DELIVERED`, `REFUNDED`. Default `PAID` for the current stub flow. |
 | `revealed_at`     | `timestamptz` | Nullable; set on first credential reveal. Drives the buyer-detail page button label "Reveal" → "View" after reveal. |
+| `marked_received_at` | `timestamptz` | Nullable; set when the buyer confirms receipt via the 4-checkbox stage. Locked once set. |
+| `received_checks` | `jsonb`       | Snapshot of the four (or three when no email creds) confirmation flags the buyer ticked: `account_info_works`, `matches_description`, `email_access`, `password_changed`. Audit trail. |
 | `created_at`      | `timestamptz` | Default `now()`                                         |
 
 Indexing:
@@ -248,19 +292,29 @@ RLS:
   read the listing they purchased once it flips to SOLD (the default
   `accounts_select_public` would otherwise hide it).
 
-Access: `src/lib/orders.ts` (`getMyOrder`) and `src/lib/orders-actions.ts`
-(`placeOrder`).
+Access:
+- `src/lib/orders.ts` — buyer & seller readers (`getMyOrder`, `getMySale`,
+  `getMyPurchases`, `getMySales`, `getMyPurchaseForListing`,
+  `getMySaleForListing`).
+- `src/lib/orders-actions.ts` — `placeOrder` (calls `place_order` RPC).
+- `src/lib/orders-reveal.ts` — `revealOrderCredentials` (calls
+  `reveal_credentials` RPC, decrypts on Node side).
+- `src/lib/orders-confirm.ts` — `confirmOrderReceived` (calls
+  `mark_order_received` RPC).
 
 ---
 
 ## 3. Enums / status values
 
-Implemented either as a Postgres enum or as a CHECK-constrained text column
-(both work for our code, which uses string literals).
-
-- `AccountStatus`: `AVAILABLE` | `RESERVED` | `SOLD`
-- `OrderStatus`: `PENDING` | `PAID` | `DELIVERED` | `REFUNDED` (live as a CHECK on `orders.status`).
-- `Role` (planned, not yet live): `USER` | `ADMIN`
+- **`account_status`** — real Postgres ENUM (`AVAILABLE` | `RESERVED` |
+  `SOLD`) on `accounts.status`. Per `0014`. Cast in policies as
+  `'AVAILABLE'::public.account_status`.
+- **OrderStatus** — CHECK-constrained text on `orders.status`:
+  `PENDING` | `PAID` | `DELIVERED` | `REFUNDED`.
+- **Payment method** — CHECK on `orders.payment_method`: `apple-pay` |
+  `google-pay` | `visa` | `mastercard` | `paypal`. Mirrored in the
+  `place_order` RPC's input validation.
+- **`Role`** (planned, not yet live): `USER` | `ADMIN`.
 
 ---
 
@@ -335,16 +389,66 @@ was_already_revealed boolean)`.
 
 **Called from:** `src/lib/orders-reveal.ts::revealOrderCredentials`.
 
+### `public.mark_order_received(p_order_number text, p_checks jsonb)`
+
+Buyer's "Mark as received" confirmation. Sets `orders.marked_received_at`
+to `now()` and `received_checks` to the JSON snapshot, but only if the
+caller is the buyer and the row hasn't already been marked received.
+The latter clause makes the operation idempotent / locked — buyers
+can't flip the flag back.
+
+**Input:** `p_order_number` text, `p_checks` jsonb (the 4-key snapshot).
+
+**Returns:** void. Raises `Order not found or already marked received`
+when the gating WHERE clause matches no rows.
+
+**Called from:** `src/lib/orders-confirm.ts::confirmOrderReceived`.
+
+### `public.submit_review(p_offer_id uuid, p_rating integer, p_body text)`
+
+Buyer review create-or-update. Validates rating ∈ [1..5] and
+`char_length(body) ≤ 1500`, gates on the caller having any order on
+the listing (verified buyer), denormalizes the seller from
+`accounts.seller_id` into `offer_reviews.seller_id`, then either:
+
+- **Inserts** a new review when none exists for `(offer_id, reviewer_id)`.
+- **Updates** the existing review's rating + body when it does, **but
+  only within 30 days from `created_at`**. Past 30 days, raises
+  `Reviews can only be edited within 30 days of creation`.
+
+**Input:** `p_offer_id` UUID, `p_rating` int, `p_body` text (nullable).
+
+**Returns:** `uuid` — the review id.
+
+**Errors raised:** `Not authenticated`, `Rating must be between 1 and 5`,
+`Review cannot exceed 1500 characters`, `Listing not found`,
+`Only verified buyers can review this listing`,
+`Reviews can only be edited within 30 days of creation`.
+
+**Called from:** `src/lib/reviews-actions.ts::submitReview`.
+
 ---
 
 ## 5. Sequences & triggers
 
-- **`store_id` sequence:** starts at `100`. A trigger on `profiles` assigns
-  the next value when `is_seller` is first set to `true` (or at row insert,
-  depending on current trigger wiring). The effect: every seller has a stable
-  human-friendly ID ≥ 100 used in seller URLs (`/seller/[storeId]`).
-- **`auth.users` → `profiles` trigger:** creates a `profiles` row on new user
-  signup so every auth user has a profile without a separate roundtrip.
+- **`store_id_seq` sequence:** starts at `100`. The
+  `on_profiles_changed` trigger calls `ensure_store_id()` BEFORE INSERT
+  OR UPDATE, which assigns the next value when `is_seller = true` and
+  `store_id is null`. Same trigger also bumps `updated_at`. Every
+  seller has a stable human-friendly ID ≥ 100 used in seller URLs
+  (`/seller/[storeId]`).
+- **`auth.users` → `profiles` trigger** (`on_auth_user_created` AFTER
+  INSERT on `auth.users` → `handle_new_user()`): creates a `profiles`
+  row on new user signup. Pulls name/avatar from
+  `raw_user_meta_data->>full_name` / `name` (fallback: email prefix)
+  and `boost_avatar_url` / `avatar_url`. `is_seller` defaults to
+  whatever `raw_user_meta_data->>isSeller` says or false.
+- **`set_updated_at()`** + `on_accounts_update` trigger BEFORE UPDATE
+  on `accounts` — bumps `updated_at` on every row change.
+- **`touch_updated_at()`** + `offer_reviews_touch_updated_at` trigger
+  BEFORE UPDATE on `offer_reviews` — same purpose, separate function
+  for historical reasons (both exist; consolidating is more risk than
+  it's worth).
 
 ---
 
@@ -354,19 +458,35 @@ RLS is **ON** on every `public.*` table. The server uses the SSR Supabase
 client (`src/lib/supabase/server.ts`) which carries the authenticated user's
 JWT, so all writes and reads are evaluated against that identity.
 
-Policy intent (verify against live policies when changing schema):
+Policies (post-`0014` reconciliation):
 
-- `profiles` — readable to anyone; writable only to the owning user
-  (`id = auth.uid()`).
-- `games` — readable to anyone; writes admin-only.
-- `accounts` — readable when `status = 'AVAILABLE'` to anyone; rows are also
-  readable to the owning seller regardless of status. Insert/update/delete
-  only when `seller_id = auth.uid()`.
-- `credentials` — readable **only** to `seller_id = auth.uid()`. Never to
-  buyers from the client — credential delivery to the buyer flows through a
-  server action after purchase (not yet implemented).
-- `offer_reviews` — readable to anyone; writable when
-  `reviewer_id = auth.uid()`.
+- **`profiles`** — public read; INSERT only when `id = auth.uid()`;
+  UPDATE only when `id = auth.uid()`.
+- **`games`** — public read. No write policies — writes need the
+  service-role key (admin tooling).
+- **`accounts`**:
+  - `accounts_select_public` — public read when `status = 'AVAILABLE'`
+    OR `seller_id = auth.uid()` (sellers see their own at any status).
+  - `accounts_select_buyer` — reader has any order on the row (lets a
+    buyer view a SOLD listing they purchased).
+  - `"seller inserts own account"` — INSERT when `seller_id = auth.uid()`.
+  - `accounts_update_own` — UPDATE when `seller_id = auth.uid()` AND
+    `status = 'AVAILABLE'`. Locks SOLD listings from edits.
+  - `accounts_delete_own` — DELETE when `seller_id = auth.uid()` AND
+    `status = 'AVAILABLE'`. Same lock.
+- **`credentials`** — read/write only when `seller_id = auth.uid()`.
+  The buyer's `reveal_credentials` RPC bypasses this via SECURITY
+  DEFINER, gated on order ownership.
+- **`orders`** — public has no access. `orders_select_buyer` and
+  `orders_select_seller` give the buyer/seller read access to their
+  own rows. **No INSERT/UPDATE/DELETE policies**: every write is via a
+  SECURITY DEFINER RPC (`place_order`, `mark_order_received`).
+- **`offer_reviews`** — public read. INSERT / UPDATE / DELETE only by
+  the reviewer. `submit_review` RPC (security definer) is the only
+  practical write path; it gates on the caller having an order on the
+  listing.
+- **`wishlists`** — read / insert / delete only when
+  `user_id = auth.uid()`.
 
 Server actions also add explicit ownership checks on top of RLS (e.g.
 `existing.seller_id !== user.id`) so the user gets a meaningful error rather
@@ -425,17 +545,22 @@ re-encrypt with new). No helper exists for that yet.
   `PAID` immediately for the stub flow. Stripe Checkout Session creation,
   webhook verification, and the `PENDING → PAID` transition still need to
   be wired. `src/lib/stripe.ts` is scaffolding.
-- **Credential delivery beyond reveal** — `reveal_credentials` (migration
-  0010) lets the buyer decrypt the listing's stored credentials after
-  confirming platform + region. Future work: reveal-once-with-receipt
-  audit log, credential rotation by seller post-sale, and dispute
-  flow if the buyer reports the credentials don't match.
+- **Seller payouts** — no Stripe Connect onboarding. The 5% commission
+  is display-only via `src/lib/commission.ts`; real splits land with
+  Stripe Connect.
+- **Refunds & disputes** — schema supports `REFUNDED` status but no
+  handlers / RPC / webhook exist.
 - **Admin role** — no `role` column on `profiles` yet; admin tooling is
-  out-of-band.
+  out-of-band (Supabase Studio).
+- **`offer_reviews.offer_id` is NULLABLE** with FK `ON DELETE SET NULL`.
+  Listing deletion would orphan reviews. Currently safe because deletes
+  are gated to AVAILABLE (per accounts_delete_own), but data-integrity
+  smell — flip to NOT NULL + CASCADE in a future migration once you've
+  confirmed no rows have null offer_id.
 - **Migrations** — `db/migrations/` is a plain SQL folder applied by hand.
-  Works for solo dev but drifts easily; if the team grows or you want a
-  local dev DB, graduate to the Supabase CLI (`supabase init` + `supabase
-  db push`).
+  Works for solo dev but drifts easily (we hit this — see `0014`). If
+  the team grows, graduate to the Supabase CLI (`supabase init` +
+  `supabase db push`).
 
 ---
 
