@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateListingFeed } from "@/lib/cache";
 import {
   credentialsFromFormData,
   saveCredentials,
@@ -127,6 +128,7 @@ export async function updateListing(
   const credsResult = await saveCredentials(offerId, user.id, creds);
   if (credsResult.error) return { error: credsResult.error };
 
+  await invalidateListingFeed();
   revalidatePath(`/user/currently-selling/${offerId}`);
   revalidatePath("/");
   return { ok: true };

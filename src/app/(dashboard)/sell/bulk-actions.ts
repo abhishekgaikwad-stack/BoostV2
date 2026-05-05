@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { detectListingAttrs } from "@/lib/ai-detect";
+import { invalidateListingFeed } from "@/lib/cache";
 import type { AccountCredentials } from "@/lib/credentials";
 import { BULK_MAX_ROWS, type BulkListingRow } from "@/lib/csv";
 import { encrypt } from "@/lib/encryption";
@@ -186,6 +187,7 @@ export async function createBulkListings(
 
   if (error) return { ok: false, error: error.message };
 
+  await invalidateListingFeed();
   revalidatePath("/user/currently-selling");
   revalidatePath("/");
   revalidatePath(`/games/${gameSlug}`);

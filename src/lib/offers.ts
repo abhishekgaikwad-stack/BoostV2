@@ -1,3 +1,4 @@
+import { cached, listingFeedKeys } from "@/lib/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Account, Game, Offer, OfferReview } from "@/types";
 
@@ -172,14 +173,20 @@ export async function findGameBySlug(slug: string): Promise<Game | null> {
 }
 
 export async function listGames(limit = 14): Promise<Game[]> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("games")
-    .select("id, slug, name, subtitle, cover")
-    .order("name")
-    .limit(limit);
-  if (error || !data) return [];
-  return data.map(toGame);
+  // Games are seeded by admins via DB migration — there's no user-facing
+  // path that mutates them, so a 1-hour TTL is safe and no invalidation hook
+  // is wired. If a games-admin UI is added later, call `invalidate(...)` on
+  // the matching `listingFeedKeys.listGames(limit)` from there.
+  return cached(listingFeedKeys.listGames(limit), 60 * 60, async () => {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("games")
+      .select("id, slug, name, subtitle, cover")
+      .order("name")
+      .limit(limit);
+    if (error || !data) return [];
+    return data.map(toGame);
+  });
 }
 
 export async function offersForGame(
@@ -246,34 +253,43 @@ export async function similarOffers(
 export async function recentOffers(
   { limit = 10, cursor = null }: ListingQuery = {},
 ): Promise<ListingPage> {
-  const supabase = await createSupabaseServerClient();
-  const query = withCursor(
-    supabase
-      .from("accounts")
-      .select(ACCOUNT_SELECT)
-      .eq("status", "AVAILABLE")
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(limit + 1),
-    cursor,
-  );
-  const { data, error } = await query;
-  if (error || !data) return { items: [], nextCursor: null };
-  return buildPage(data as unknown as AccountRow[], limit);
+  const run = async (): Promise<ListingPage> => {
+    const supabase = await createSupabaseServerClient();
+    const query = withCursor(
+      supabase
+        .from("accounts")
+        .select(ACCOUNT_SELECT)
+        .eq("status", "AVAILABLE")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(limit + 1),
+      cursor,
+    );
+    const { data, error } = await query;
+    if (error || !data) return { items: [], nextCursor: null };
+    return buildPage(data as unknown as AccountRow[], limit);
+  };
+  // Only the first page is shared across all visitors and worth caching;
+  // paginated calls past the cursor are rare (just the homepage rail today)
+  // and would multiply the key space.
+  if (cursor) return run();
+  return cached(listingFeedKeys.recentOffers(limit), 5 * 60, run);
 }
 
 export async function firstFlashOffer(): Promise<Account | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("accounts")
-    .select(ACCOUNT_SELECT)
-    .eq("status", "AVAILABLE")
-    .not("old_price", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error || !data) return null;
-  return toAccount(data as unknown as AccountRow);
+  return cached(listingFeedKeys.firstFlashOffer(), 3 * 60, async () => {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("accounts")
+      .select(ACCOUNT_SELECT)
+      .eq("status", "AVAILABLE")
+      .not("old_price", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return toAccount(data as unknown as AccountRow);
+  });
 }
 
 export async function findOfferById(offerId: string): Promise<Account | null> {

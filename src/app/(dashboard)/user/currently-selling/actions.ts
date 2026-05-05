@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateListingFeed } from "@/lib/cache";
 import { deleteObjectsByUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -49,6 +50,7 @@ export async function deleteListing(
   }
 
   const gameSlug = (listing.game as unknown as { slug: string } | null)?.slug;
+  await invalidateListingFeed();
   revalidatePath("/user/currently-selling");
   revalidatePath("/");
   if (gameSlug) revalidatePath(`/games/${gameSlug}`);

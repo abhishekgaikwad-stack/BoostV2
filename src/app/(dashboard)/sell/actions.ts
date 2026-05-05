@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { invalidateListingFeed } from "@/lib/cache";
 import {
   credentialsFromFormData,
   saveCredentials,
@@ -127,6 +128,7 @@ export async function createListing(
   }
 
   const gameSlug = (data.game as unknown as { slug: string }).slug;
+  await invalidateListingFeed();
   revalidatePath("/");
   revalidatePath(`/games/${gameSlug}`);
   redirect(`/games/${gameSlug}/${data.id}`);

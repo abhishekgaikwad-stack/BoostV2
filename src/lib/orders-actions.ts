@@ -1,5 +1,6 @@
 "use server";
 
+import { invalidateListingFeed } from "@/lib/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PlaceOrderResult =
@@ -33,6 +34,10 @@ export async function placeOrder(input: {
   if (!row?.order_id || !row?.transaction_id) {
     return { error: "Could not place order." };
   }
+  // The RPC flipped the listing's status to SOLD; bust the AVAILABLE-only
+  // homepage rails so the just-sold listing doesn't linger there for the
+  // remainder of the cache TTL.
+  await invalidateListingFeed();
   return {
     ok: true,
     orderId: row.order_id as string,
