@@ -8,6 +8,7 @@ import {
   saveCredentials,
 } from "@/lib/credentials";
 import { checkLimit } from "@/lib/listing-limits";
+import { createListingPerUserPerMinute } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_CAP_CENTS, PRICE_MAX_EUR } from "@/lib/utils";
 import { parseDiscountFromFormData } from "@/lib/discount";
@@ -33,6 +34,14 @@ export async function createListing(
     .maybeSingle();
   if (!profile?.is_seller) {
     return { error: "Turn on seller mode from your profile first." };
+  }
+
+  // Throttle per-seller before any insert / S3 / encryption work — a flood
+  // would otherwise burn DB writes and image quota even if the rows are
+  // legitimate. 10/min is well above any manual rate.
+  const quota = await createListingPerUserPerMinute.limit(user.id);
+  if (!quota.success) {
+    return { error: "You're creating listings too fast. Try again in a minute." };
   }
 
   const gameId = formData.get("gameId")?.toString();

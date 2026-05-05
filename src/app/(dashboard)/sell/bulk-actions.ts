@@ -7,7 +7,10 @@ import type { AccountCredentials } from "@/lib/credentials";
 import { BULK_MAX_ROWS, type BulkListingRow } from "@/lib/csv";
 import { encrypt } from "@/lib/encryption";
 import { LISTING_LIMITS } from "@/lib/listing-limits";
-import { aiDetectPerUserDaily } from "@/lib/rate-limit";
+import {
+  aiDetectPerUserDaily,
+  createBulkListingsPerUserPerHour,
+} from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PRICE_MAX_EUR } from "@/lib/utils";
 
@@ -44,6 +47,16 @@ export async function createBulkListings(
     .maybeSingle();
   if (!profile?.is_seller) {
     return { ok: false, error: "Turn on seller mode first." };
+  }
+
+  // Bulk uploads are heavy (up to BULK_MAX_ROWS rows + AI fan-out + RPC
+  // transaction). Cap at 5/hour/seller before any of that work begins.
+  const bulkQuota = await createBulkListingsPerUserPerHour.limit(user.id);
+  if (!bulkQuota.success) {
+    return {
+      ok: false,
+      error: "Too many bulk uploads this hour. Try again later.",
+    };
   }
 
   if (!Array.isArray(rows) || rows.length === 0) {

@@ -1,6 +1,7 @@
 "use server";
 
 import { invalidateListingFeed } from "@/lib/cache";
+import { getClientIp, placeOrderPerIpDaily } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PlaceOrderResult =
@@ -22,6 +23,17 @@ export async function placeOrder(input: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to complete your purchase." };
+
+  // Per-IP daily ceiling — stops scripted checkout floods regardless of how
+  // many accounts the attacker rotates through. A real shared-NAT user only
+  // reaches this if dozens of people on their network are buying same-day.
+  const ip = await getClientIp();
+  const quota = await placeOrderPerIpDaily.limit(ip);
+  if (!quota.success) {
+    return {
+      error: "Too many checkout attempts from your network today. Try again later.",
+    };
+  }
 
   const { data, error } = await supabase.rpc("place_order", {
     p_account_id: input.offerId,
