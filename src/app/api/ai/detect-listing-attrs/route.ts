@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { detectListingAttrs } from "@/lib/ai-detect";
-import { aiDetectPerUserDaily } from "@/lib/rate-limit";
+import {
+  aiDetectPerIpDaily,
+  aiDetectPerUserDaily,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -14,21 +18,47 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
 
-  // Per-user 100/day cap. Sliding window — rolling 24h, not calendar day.
-  const quota = await aiDetectPerUserDaily.limit(user.id);
-  if (!quota.success) {
+  // Stacked caps: per-user 100/d catches normal abuse, per-IP 200/d catches
+  // multi-account amplification. Run in parallel so legitimate requests pay
+  // one round-trip, not two. Both buckets tick on every call regardless of
+  // outcome — that's intentional, each is an independent counter.
+  const ip = await getClientIp();
+  const [userQuota, ipQuota] = await Promise.all([
+    aiDetectPerUserDaily.limit(user.id),
+    aiDetectPerIpDaily.limit(ip),
+  ]);
+  // Surface the user cap first when both fail so the message is actionable
+  // for the caller (signing out won't help with the IP cap).
+  if (!userQuota.success) {
     return NextResponse.json(
       {
         error: "Daily AI limit reached. Try again later.",
-        retryAt: quota.reset,
+        retryAt: userQuota.reset,
         remaining: 0,
       },
       {
         status: 429,
         headers: {
-          "X-RateLimit-Limit": String(quota.limit),
-          "X-RateLimit-Remaining": String(quota.remaining),
-          "X-RateLimit-Reset": String(quota.reset),
+          "X-RateLimit-Limit": String(userQuota.limit),
+          "X-RateLimit-Remaining": String(userQuota.remaining),
+          "X-RateLimit-Reset": String(userQuota.reset),
+        },
+      },
+    );
+  }
+  if (!ipQuota.success) {
+    return NextResponse.json(
+      {
+        error: "Too many AI requests from your network today. Try again later.",
+        retryAt: ipQuota.reset,
+        remaining: 0,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(ipQuota.limit),
+          "X-RateLimit-Remaining": String(ipQuota.remaining),
+          "X-RateLimit-Reset": String(ipQuota.reset),
         },
       },
     );

@@ -39,6 +39,22 @@ export const aiDetectPerUserDaily = new Ratelimit({
 });
 
 /**
+ * 200 calls per source IP per day on top of the per-user cap. Catches
+ * multi-account amplification (one attacker rotating through fresh
+ * accounts to clear the per-user limit each time). Set to 2x the
+ * per-user cap so a small office sharing one NAT'd IP isn't cut off by
+ * normal usage. Only applied at the single-listing form route — bulk
+ * uploads already have their own per-user-per-hour ceiling and a
+ * per-row IP cap here would break legitimate 500-row uploads.
+ */
+export const aiDetectPerIpDaily = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(200, "1 d"),
+  analytics: true,
+  prefix: "rl:ai-detect:ip",
+});
+
+/**
  * 100 order placements per IP per rolling 24h. Catches scripted abuse
  * (mass checkout attempts, price probing) without blocking legitimate
  * shoppers — typical buyers place a handful of orders/day at most.
