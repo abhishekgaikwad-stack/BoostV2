@@ -44,8 +44,17 @@ they're terse but load-bearing. Everything below is **in addition to** those.
   blur-trigger on the listing form **and** per-row in the bulk CSV
   action when columns are blank.
 - **Rate limiting:** Upstash Redis (sliding-window) via
-  `src/lib/rate-limit.ts`. Currently caps AI detect at **100/day per
-  user**. Env vars: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
+  `src/lib/rate-limit.ts`. Five caps today: AI detect 100/d/user +
+  200/d/IP, `placeOrder` 100/d/IP, `createListing` 10/min/user,
+  `createBulkListings` 5/h/user. Helper `getClientIp()` reads
+  `x-forwarded-for` for IP-scoped paths. Env vars:
+  `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
+- **Listing-feed cache:** Upstash-backed read cache via
+  `src/lib/cache.ts` for the homepage rails (`listGames`,
+  `recentOffers`, `firstFlashOffer`). Lazy-init with silent fallback —
+  Redis outages or missing env vars degrade to direct DB reads, never
+  errors. Mutations call `invalidateListingFeed()`. Reuses the same
+  Upstash env vars as rate-limit.
 - **PDFs:** `@react-pdf/renderer` (Node-only) for the buyer invoice at
   `/api/invoice/[orderId]`. Boost logo redrawn as `<Svg>` primitives so
   the PDF needs no remote image fetch.
@@ -178,7 +187,12 @@ src/
                             no server imports)
     invoice.tsx             InvoiceDocument + renderInvoicePdf (Node-only)
     ai-detect.ts            detectListingAttrs (server-only Anthropic call)
-    rate-limit.ts           Upstash limiters (aiDetectPerUserDaily)
+    rate-limit.ts           Upstash limiters (aiDetect per-user/per-IP,
+                            placeOrder, createListing, createBulkListings)
+                            + getClientIp helper
+    cache.ts                Upstash read cache (cached, invalidate,
+                            listingFeedKeys, invalidateListingFeed) —
+                            lazy-init, silent fallback on errors
     commission.ts           SELLER_COMMISSION_RATE = 0.05 + cent helpers
     listing-limits.ts       LISTING_LIMITS map + checkLimit helper
     discount.ts             flash-discount validation helpers
@@ -205,7 +219,14 @@ BoostV2_DB_Architecture.md  live-DB reference doc (tables, RLS, RPC, indexes)
 | `LISTING_LIMITS.credNotes`   | `500`     | `src/lib/listing-limits.ts`           |
 | Review body max              | `1500`    | `src/lib/reviews-actions.ts` + DB CHECK + `submit_review` RPC |
 | Review edit window           | `30 days` | RPC + `isWithinEditWindow` (`src/lib/review-types.ts`) |
-| AI detect rate limit         | `100/day per user` | `src/lib/rate-limit.ts` (sliding window) |
+| AI detect rate limit (user)  | `100/day per user` | `src/lib/rate-limit.ts` (`aiDetectPerUserDaily`) |
+| AI detect rate limit (IP)    | `200/day per IP`   | `src/lib/rate-limit.ts` (`aiDetectPerIpDaily`)   |
+| Place order rate limit       | `100/day per IP`   | `src/lib/rate-limit.ts` (`placeOrderPerIpDaily`) |
+| Create listing rate limit    | `10/min per user`  | `src/lib/rate-limit.ts` (`createListingPerUserPerMinute`) |
+| Bulk upload rate limit       | `5/h per user`     | `src/lib/rate-limit.ts` (`createBulkListingsPerUserPerHour`) |
+| Listing-feed cache TTL — games  | `1 h`           | `src/lib/offers.ts` (`listGames`)                |
+| Listing-feed cache TTL — recent | `5 m`           | `src/lib/offers.ts` (`recentOffers`, first page only) |
+| Listing-feed cache TTL — flash  | `3 m`           | `src/lib/offers.ts` (`firstFlashOffer`)          |
 | Default listing limit        | `24`      | `src/lib/offers.ts` (`DEFAULT_LISTING_LIMIT`) |
 | Default review page limit    | `10`      | `src/lib/reviews.ts` (`DEFAULT_REVIEW_LIMIT`) |
 | Wishlist page limit          | `48`      | `src/app/(marketing)/wishlist/page.tsx` |
@@ -369,16 +390,59 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    leaves Node. Strict JSON guaranteed by Claude tool-use.
 
 ### Rate limiting
-1. `src/lib/rate-limit.ts` exposes `aiDetectPerUserDaily` (Upstash
-   sliding-window, 100/day, keyed by `auth.uid()`).
-2. Both call sites (`/api/ai/detect-listing-attrs` and
-   `bulk-actions.ts`) call `.limit(user.id)` BEFORE the Anthropic
-   request. The route returns 429 with
-   `X-RateLimit-Limit/Remaining/Reset` headers; the bulk action
-   degrades gracefully per-row.
-3. Fail-loud env: `Redis.fromEnv()` throws on import if
+1. `src/lib/rate-limit.ts` exposes five Upstash sliding-window limiters
+   plus a `getClientIp()` helper that reads `x-forwarded-for` (falls
+   back to `x-real-ip`, then a sentinel bucket). All limiters share the
+   same Upstash client constructed via `Redis.fromEnv()`.
+
+   | Limiter                          | Window  | Identifier  | Used by                                                |
+   |----------------------------------|---------|-------------|--------------------------------------------------------|
+   | `aiDetectPerUserDaily`           | 100/1d  | `user.id`   | `/api/ai/detect-listing-attrs`, `bulk-actions.ts` (per row) |
+   | `aiDetectPerIpDaily`             | 200/1d  | client IP   | `/api/ai/detect-listing-attrs` only (skipped per-row in bulk — would break legit 500-row uploads) |
+   | `placeOrderPerIpDaily`           | 100/1d  | client IP   | `orders-actions.ts::placeOrder`                        |
+   | `createListingPerUserPerMinute`  | 10/1m   | `user.id`   | `sell/actions.ts::createListing`                       |
+   | `createBulkListingsPerUserPerHour` | 5/1h  | `user.id`   | `sell/bulk-actions.ts::createBulkListings`             |
+2. Stacked-limit pattern (AI detect): user + IP run in parallel via
+   `Promise.all` so legit requests pay one round-trip. Both buckets
+   tick on every call regardless of outcome — independent counters.
+   User-cap error wins when both fail (it's the actionable one).
+3. Route handlers return 429 + `X-RateLimit-Limit/Remaining/Reset`
+   headers; server actions return their existing `{ error }` /
+   `{ ok: false, error }` shape so forms render the message inline.
+4. Limit checks run **after auth, before any expensive work** (DB
+   writes, AI calls, S3 presigns). Cheaper to reject unauthenticated
+   first; cheaper still to reject rate-limited before burning budget.
+5. Fail-loud env: `Redis.fromEnv()` throws on import if
    `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` aren't set —
-   silent passthrough would defeat the limit.
+   silent passthrough would defeat the limit. (Note: `cache.ts` reuses
+   the same env vars but is intentionally lazy/fallback — perf layers
+   should degrade, security layers should not.)
+
+### Listing-feed cache
+1. `src/lib/cache.ts` — thin Upstash wrapper. `cached(key, ttlSec,
+   loader)` is get-or-set with a stateless loader; on Redis errors
+   (or missing env in dev) it transparently falls back to the loader.
+   Nullish results are not cached so newly-arrived rows surface
+   immediately.
+2. Three Tier 1 reads in `src/lib/offers.ts` are wrapped:
+   - `listGames(limit)` — TTL **1 h**, key `feed:games:{limit}`. No
+     invalidation hook (games are seeded by DB migration; no
+     user-facing path mutates them).
+   - `recentOffers({ limit })` — TTL **5 m**, key `feed:recent:{limit}`.
+     **Only the first page is cached** — paginated calls past `cursor`
+     bypass to keep the key space bounded.
+   - `firstFlashOffer()` — TTL **3 m**, key `feed:flash:first`.
+3. `invalidateListingFeed()` busts `recentOffers` + `firstFlashOffer`
+   keys (`listGames` not currently invalidated, see above). Wired into
+   every `accounts` mutation: `createListing`, `createBulkListings`,
+   `deleteListing`, `updateListing`, and `placeOrder` (which flips
+   status to SOLD via the RPC). Note: `placeOrder` did not previously
+   call `revalidatePath('/')` — the cache invalidation now also
+   refreshes the homepage rails post-sale.
+4. Hard-coded invalidation for `recentOffers` covers `[10]` (the only
+   limit currently in use). If a new caller passes a different limit
+   and needs to track listing mutations, add it to
+   `RECENT_OFFERS_LIMITS` in `cache.ts`.
 
 ### Live commission preview
 1. `SELLER_COMMISSION_RATE = 0.05` + cent-precise `commissionCents` /
