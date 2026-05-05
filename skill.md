@@ -44,11 +44,12 @@ they're terse but load-bearing. Everything below is **in addition to** those.
   blur-trigger on the listing form **and** per-row in the bulk CSV
   action when columns are blank.
 - **Rate limiting:** Upstash Redis (sliding-window) via
-  `src/lib/rate-limit.ts`. Five caps today: AI detect 100/d/user +
+  `src/lib/rate-limit.ts`. Eight caps today: AI detect 100/d/user +
   200/d/IP, `placeOrder` 100/d/IP, `createListing` 10/min/user,
-  `createBulkListings` 5/h/user. Helper `getClientIp()` reads
-  `x-forwarded-for` for IP-scoped paths. Env vars:
-  `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
+  `createBulkListings` 5/h/user, `submitReview` 10/min/user,
+  listing-image presign 30/min/user, avatar presign 5/min/user.
+  Helper `getClientIp()` reads `x-forwarded-for` for IP-scoped paths.
+  Env vars: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
 - **Listing-feed cache:** Upstash-backed read cache via
   `src/lib/cache.ts` for the homepage rails (`listGames`,
   `recentOffers`, `firstFlashOffer`). Lazy-init with silent fallback —
@@ -188,7 +189,8 @@ src/
     invoice.tsx             InvoiceDocument + renderInvoicePdf (Node-only)
     ai-detect.ts            detectListingAttrs (server-only Anthropic call)
     rate-limit.ts           Upstash limiters (aiDetect per-user/per-IP,
-                            placeOrder, createListing, createBulkListings)
+                            placeOrder, createListing, createBulkListings,
+                            submitReview, listing-image / avatar presign)
                             + getClientIp helper
     cache.ts                Upstash read cache (cached, invalidate,
                             listingFeedKeys, invalidateListingFeed) —
@@ -224,6 +226,9 @@ BoostV2_DB_Architecture.md  live-DB reference doc (tables, RLS, RPC, indexes)
 | Place order rate limit       | `100/day per IP`   | `src/lib/rate-limit.ts` (`placeOrderPerIpDaily`) |
 | Create listing rate limit    | `10/min per user`  | `src/lib/rate-limit.ts` (`createListingPerUserPerMinute`) |
 | Bulk upload rate limit       | `5/h per user`     | `src/lib/rate-limit.ts` (`createBulkListingsPerUserPerHour`) |
+| Submit review rate limit     | `10/min per user`  | `src/lib/rate-limit.ts` (`submitReviewPerUserPerMinute`) |
+| Listing-image presign limit  | `30/min per user`  | `src/lib/rate-limit.ts` (`listingImagePresignPerUserPerMinute`) |
+| Avatar presign rate limit    | `5/min per user`   | `src/lib/rate-limit.ts` (`avatarPresignPerUserPerMinute`)  |
 | Listing-feed cache TTL — games  | `1 h`           | `src/lib/offers.ts` (`listGames`)                |
 | Listing-feed cache TTL — recent | `5 m`           | `src/lib/offers.ts` (`recentOffers`, first page only) |
 | Listing-feed cache TTL — flash  | `3 m`           | `src/lib/offers.ts` (`firstFlashOffer`)          |
@@ -402,6 +407,9 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    | `placeOrderPerIpDaily`           | 100/1d  | client IP   | `orders-actions.ts::placeOrder`                        |
    | `createListingPerUserPerMinute`  | 10/1m   | `user.id`   | `sell/actions.ts::createListing`                       |
    | `createBulkListingsPerUserPerHour` | 5/1h  | `user.id`   | `sell/bulk-actions.ts::createBulkListings`             |
+   | `submitReviewPerUserPerMinute`   | 10/1m   | `user.id`   | `reviews-actions.ts::submitReview`                     |
+   | `listingImagePresignPerUserPerMinute` | 30/1m | `user.id` | `/api/uploads/listing-image`                           |
+   | `avatarPresignPerUserPerMinute`  | 5/1m    | `user.id`   | `/api/uploads/avatar`                                  |
 2. Stacked-limit pattern (AI detect): user + IP run in parallel via
    `Promise.all` so legit requests pay one round-trip. Both buckets
    tick on every call regardless of outcome — independent counters.

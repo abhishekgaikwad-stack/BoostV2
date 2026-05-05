@@ -1,6 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
+import { listingImagePresignPerUserPerMinute } from "@/lib/rate-limit";
 import { S3_BUCKET, publicUrlFor, s3Client } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -33,6 +34,24 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Seller mode required to upload listing images." },
       { status: 403 },
+    );
+  }
+
+  const quota = await listingImagePresignPerUserPerMinute.limit(user.id);
+  if (!quota.success) {
+    return NextResponse.json(
+      {
+        error: "Too many upload requests. Try again in a minute.",
+        retryAt: quota.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(quota.limit),
+          "X-RateLimit-Remaining": String(quota.remaining),
+          "X-RateLimit-Reset": String(quota.reset),
+        },
+      },
     );
   }
 

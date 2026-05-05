@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { submitReviewPerUserPerMinute } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type SubmitReviewResult =
@@ -25,6 +26,14 @@ export async function submitReview(input: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to leave a review." };
+
+  // Throttle before the order lookup — reviews are bounded per-listing
+  // by a unique constraint, but the 30-day edit window has no DB cap on
+  // edit frequency.
+  const quota = await submitReviewPerUserPerMinute.limit(user.id);
+  if (!quota.success) {
+    return { error: "Too many review submissions. Try again in a minute." };
+  }
 
   if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
     return { error: "Rating must be between 1 and 5." };

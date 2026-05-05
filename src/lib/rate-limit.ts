@@ -91,3 +91,40 @@ export const createBulkListingsPerUserPerHour = new Ratelimit({
   analytics: true,
   prefix: "rl:create-bulk:user",
 });
+
+/**
+ * 10 review submissions / edits per buyer per minute. Spam on new
+ * reviews is naturally bounded by `offer_reviews_unique_buyer` (one
+ * review per buyer per listing), but the 30-day edit window has no DB
+ * cap on edit frequency — this catches scripted edit floods.
+ */
+export const submitReviewPerUserPerMinute = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 m"),
+  analytics: true,
+  prefix: "rl:submit-review:user",
+});
+
+/**
+ * 30 listing-image presigns per seller per minute. Above any realistic
+ * manual upload rate (10 images max per listing); blocks scripted
+ * presign storms that would burn AWS API quota.
+ */
+export const listingImagePresignPerUserPerMinute = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1 m"),
+  analytics: true,
+  prefix: "rl:upload-listing-img:user",
+});
+
+/**
+ * 5 avatar presigns per user per minute. Avatar is a single image,
+ * so even a flurry of retries shouldn't exceed this. Stops scripted
+ * abuse on a non-seller-gated endpoint.
+ */
+export const avatarPresignPerUserPerMinute = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "1 m"),
+  analytics: true,
+  prefix: "rl:upload-avatar:user",
+});

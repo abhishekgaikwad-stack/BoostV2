@@ -1,6 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
+import { avatarPresignPerUserPerMinute } from "@/lib/rate-limit";
 import { S3_BUCKET, publicUrlFor, s3Client } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -27,6 +28,24 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+
+  const quota = await avatarPresignPerUserPerMinute.limit(user.id);
+  if (!quota.success) {
+    return NextResponse.json(
+      {
+        error: "Too many upload requests. Try again in a minute.",
+        retryAt: quota.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(quota.limit),
+          "X-RateLimit-Remaining": String(quota.remaining),
+          "X-RateLimit-Reset": String(quota.reset),
+        },
+      },
+    );
   }
 
   let body: { contentType?: string; size?: number } = {};
