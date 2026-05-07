@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthPrompt } from "@/components/auth/AuthPromptProvider";
+import { BoostProtectModal } from "@/components/sections/BoostProtectModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { paymentIcon } from "@/lib/images";
+import type { ProtectPlan } from "@/lib/protect";
 import {
   discountPercent,
   formatDiscountCountdown,
@@ -36,6 +38,7 @@ export function BuyBox({ offer, isOwner, relatedOrderId }: BuyBoxProps) {
   const { requireLogin } = useAuthPrompt();
   const [isSignedIn, setSignedIn] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
+  const [protectOpen, setProtectOpen] = useState(false);
   const [endsLabel, setEndsLabel] = useState<string | null>(() =>
     offer.discountEndsAt
       ? formatDiscountCountdown(offer.discountEndsAt)
@@ -67,6 +70,8 @@ export function BuyBox({ offer, isOwner, relatedOrderId }: BuyBoxProps) {
       const handle = window.setInterval(tick, 60_000);
       return () => window.clearInterval(handle);
     }
+    // Clear stale label when both timestamps disappear (e.g. discount ends).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEndsLabel(null);
   }, [offer.discountEndsAt, offer.offerEndsAt]);
 
@@ -87,8 +92,14 @@ export function BuyBox({ offer, isOwner, relatedOrderId }: BuyBoxProps) {
       requireLogin();
       return;
     }
+    setProtectOpen(true);
+  }
+
+  function handleProtectChoice(plan: ProtectPlan | null) {
+    setProtectOpen(false);
     setPending(true);
-    router.push(`/checkout/${offer.id}`);
+    const qs = plan ? `?protect=${plan}` : "";
+    router.push(`/checkout/${offer.id}${qs}`);
   }
 
   const isSold = offer.status !== "AVAILABLE";
@@ -212,6 +223,13 @@ export function BuyBox({ offer, isOwner, relatedOrderId }: BuyBoxProps) {
           </span>
         ))}
       </div>
+
+      <BoostProtectModal
+        open={protectOpen}
+        priceEuro={offer.price}
+        onClose={() => setProtectOpen(false)}
+        onConfirm={handleProtectChoice}
+      />
     </aside>
   );
 }

@@ -3,15 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckoutBoard } from "@/components/sections/CheckoutBoard";
 import { findOfferById } from "@/lib/offers";
+import { parseProtectPlan } from "@/lib/protect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CheckoutSignInPrompt } from "./CheckoutSignInPrompt";
 
 export default async function CheckoutPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ offerId: string }>;
+  searchParams: Promise<{ protect?: string | string[] }>;
 }) {
   const { offerId } = await params;
+  const { protect: protectRaw } = await searchParams;
+  const protectPlan = parseProtectPlan(
+    Array.isArray(protectRaw) ? protectRaw[0] : protectRaw,
+  );
 
   const offer = await findOfferById(offerId);
   if (!offer) notFound();
@@ -41,7 +48,7 @@ export default async function CheckoutPage({
         Checkout
       </h1>
 
-      <CheckoutBoard offer={offer} />
+      <CheckoutBoard offer={offer} protectPlan={protectPlan} />
     </div>
   );
 }

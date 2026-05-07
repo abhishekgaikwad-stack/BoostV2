@@ -15,6 +15,10 @@
   /* Brand palette (from Figma styles) */
   --color-brand-accent: #d1ff67;
   --color-brand-accent-dark: #a0de10;
+  /* Trust / protection accent — used by Boost Protect (warranty add-on).
+     Distinct from `brand-accent` (primary CTA) and `brand-warning`
+     (#f59e0b, alarm); yellow here signals "shielded / safe", not "watch out". */
+  --color-brand-protect: #f9e25d;
   --color-brand-bg-dark: #000000;
   --color-brand-bg-surface: #171717;
   --color-brand-bg-elevated: #212121;

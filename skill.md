@@ -177,10 +177,13 @@ src/
     wishlist-actions.ts     toggleWishlist server action
     orders.ts               getMyOrder, getMySale, getMyPurchases, getMySales,
                             getMyPurchaseForListing, getMySaleForListing
-    orders-actions.ts       placeOrder (calls place_order RPC)
+    orders-actions.ts       placeOrder (calls place_order RPC, optional
+                            protectPlan)
     orders-reveal.ts        revealOrderCredentials (calls reveal_credentials
                             RPC, decrypts on Node side)
     orders-confirm.ts       confirmOrderReceived (calls mark_order_received)
+    protect.ts              Boost Protect rates / fee + warranty helpers
+                            (single source of truth, mirrored in place_order)
     reviews.ts              getMyReviewForOffer, getSellerReviewStats,
                             getSellerReviewsPage
     reviews-actions.ts      submitReview (calls submit_review RPC)
@@ -212,6 +215,8 @@ BoostV2_DB_Architecture.md  live-DB reference doc (tables, RLS, RPC, indexes)
 | `PRICE_MAX_EUR`              | `1000`    | `src/lib/utils.ts` (also CHECK in DB) |
 | `PRICE_CAP_CENTS`            | `100_000` | `src/lib/utils.ts`                    |
 | `SELLER_COMMISSION_RATE`     | `0.05`    | `src/lib/commission.ts`               |
+| Boost Protect 3-month rate   | `0.10`    | `src/lib/protect.ts` + `place_order` RPC |
+| Boost Protect 6-month rate   | `0.14`    | `src/lib/protect.ts` + `place_order` RPC |
 | `BULK_MAX_ROWS`              | `500`     | `src/lib/csv.ts`                      |
 | `LISTING_LIMITS.title`       | `200`     | `src/lib/listing-limits.ts`           |
 | `LISTING_LIMITS.description` | `1000`    | `src/lib/listing-limits.ts`           |
@@ -451,6 +456,31 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    limit currently in use). If a new caller passes a different limit
    and needs to track listing mutations, add it to
    `RECENT_OFFERS_LIMITS` in `cache.ts`.
+
+### Boost Protect (extended warranty)
+1. Optional add-on selected on the PDP popup (`BoostProtectModal`,
+   triggered by Buy Now). Two plans: 3-month at 10% of effective price,
+   6-month at 14%. Skip → no plan, normal checkout.
+2. Choice flows to checkout via query string: `/checkout/{id}?protect=3m|6m`
+   (parsed strictly by `parseProtectPlan` — anything else → null).
+3. Authoritative fee computed **server-side** in the `place_order` RPC
+   from the same effective price (post flash-discount) the order itself
+   uses for `price_cents`. Client display uses `protectFeeCents`/
+   `protectFeeEuro` from `src/lib/protect.ts`; both round identically
+   (`round(priceCents * rate)`).
+4. Persisted on `orders` as two columns: `protect_plan` (`'3m'`/`'6m'`/null)
+   and `protect_fee_cents` (≥ 0, default 0). Listing price stays in
+   `price_cents`; total charged = `price_cents + protect_fee_cents`. Keeps
+   commission math, refunds, and analytics clean — protect is identifiable.
+5. Warranty end is **derived**, not stored: `created_at + 3/6 months` via
+   `warrantyEndsAt()`. One source of truth for the date in the UI.
+6. Buyer-only display today: shield-pill on `OrderCard`, full
+   "Eligible for refund until {date}" callout on the order detail page.
+   Seller views (`getMySale`, sale-detail) deliberately do not surface
+   protect — it's platform revenue and doesn't affect seller payout.
+7. Refund eligibility (per product spec): a buyer with Boost Protect can
+   request a refund anytime within their warranty window. Refund flow
+   itself is not yet implemented.
 
 ### Live commission preview
 1. `SELLER_COMMISSION_RATE = 0.05` + cent-precise `commissionCents` /

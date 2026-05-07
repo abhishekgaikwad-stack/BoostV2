@@ -4,14 +4,21 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PaymentMethodSlug } from "@/components/sections/PaymentMethodSelector";
 import { placeOrder } from "@/lib/orders-actions";
+import {
+  PROTECT_PLAN_LABELS,
+  type ProtectPlan,
+  protectFeeEuro,
+} from "@/lib/protect";
 import type { Account } from "@/types";
 
 export function CheckoutSummary({
   offer,
   selectedMethod,
+  protectPlan,
 }: {
   offer: Account;
   selectedMethod: PaymentMethodSlug | null;
+  protectPlan: ProtectPlan | null;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -21,6 +28,8 @@ export function CheckoutSummary({
     offer.oldPrice && offer.oldPrice > offer.price
       ? offer.oldPrice - offer.price
       : 0;
+  const protectFee = protectFeeEuro(offer.price, protectPlan);
+  const total = offer.price + protectFee;
 
   async function handleProceedToPay() {
     if (!selectedMethod) return;
@@ -29,6 +38,7 @@ export function CheckoutSummary({
     const result = await placeOrder({
       offerId: offer.id,
       paymentMethod: selectedMethod,
+      protectPlan,
     });
     if ("error" in result) {
       setError(result.error);
@@ -55,6 +65,14 @@ export function CheckoutSummary({
             <dd className="font-medium">−€{savings.toFixed(2)}</dd>
           </div>
         ) : null}
+        {protectPlan ? (
+          <div className="flex items-baseline justify-between">
+            <dt className="text-brand-text-secondary-dark">
+              Boost Protect ({PROTECT_PLAN_LABELS[protectPlan]})
+            </dt>
+            <dd className="font-medium">€{protectFee.toFixed(2)}</dd>
+          </div>
+        ) : null}
       </dl>
 
       <div className="flex items-baseline justify-between border-t border-brand-border-subtle pt-4">
@@ -62,13 +80,13 @@ export function CheckoutSummary({
           Total
         </span>
         <div className="flex items-baseline gap-3">
-          {offer.oldPrice ? (
+          {offer.oldPrice && !protectPlan ? (
             <span className="font-display text-[14px] font-medium text-brand-text-secondary-dark line-through">
               €{offer.oldPrice.toFixed(2)}
             </span>
           ) : null}
           <span className="font-display text-[32px] font-medium leading-9">
-            €{offer.price.toFixed(2)}
+            €{total.toFixed(2)}
           </span>
         </div>
       </div>

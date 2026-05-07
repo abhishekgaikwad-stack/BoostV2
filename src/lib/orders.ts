@@ -3,6 +3,11 @@ import {
   encodeCursor,
   type ListingCursor,
 } from "@/lib/offers";
+import {
+  type ProtectPlan,
+  parseProtectPlan,
+  warrantyEndsAt,
+} from "@/lib/protect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type OrderStatus = "PENDING" | "PAID" | "DELIVERED" | "REFUNDED";
@@ -24,6 +29,8 @@ export type OrderRow = {
   revealed_at: string | null;
   marked_received_at: string | null;
   received_checks: ReceivedChecks | null;
+  protect_plan: string | null;
+  protect_fee_cents: number | null;
   account: {
     id: string;
     title: string;
@@ -38,6 +45,7 @@ export type OrderRow = {
 export type Order = {
   id: string;
   transactionId: string;
+  /** Listing price the buyer paid. Excludes protect fee — see `protectFee`. */
   price: number;
   paymentMethod: string;
   status: OrderStatus;
@@ -48,6 +56,12 @@ export type Order = {
   markedReceivedAt: string | null;
   /** Snapshot of the confirmation checkboxes the buyer ticked. */
   receivedChecks: ReceivedChecks | null;
+  /** Boost Protect plan attached to this order, or null if the buyer skipped. */
+  protectPlan: ProtectPlan | null;
+  /** Protect fee in euros (0 if no plan). */
+  protectFee: number;
+  /** ISO timestamp of warranty expiry, derived from `createdAt + plan months`. */
+  warrantyEndsAt: string | null;
   offer: {
     id: string;
     title: string;
@@ -73,6 +87,7 @@ export type Sale = Order;
 const ORDER_SELECT = `
   id:order_number, transaction_id, price_cents, payment_method, status, created_at,
   revealed_at, marked_received_at, received_checks,
+  protect_plan, protect_fee_cents,
   account:accounts(
     id, title, images, platform, region,
     game:games(id, slug, name),
@@ -81,6 +96,7 @@ const ORDER_SELECT = `
 `;
 
 function toOrder(row: OrderRow): Order {
+  const protectPlan = parseProtectPlan(row.protect_plan);
   return {
     id: row.id,
     transactionId: row.transaction_id,
@@ -91,6 +107,9 @@ function toOrder(row: OrderRow): Order {
     revealedAt: row.revealed_at ?? null,
     markedReceivedAt: row.marked_received_at ?? null,
     receivedChecks: row.received_checks ?? null,
+    protectPlan,
+    protectFee: (row.protect_fee_cents ?? 0) / 100,
+    warrantyEndsAt: warrantyEndsAt(row.created_at, protectPlan),
     offer: row.account
       ? {
           id: row.account.id,

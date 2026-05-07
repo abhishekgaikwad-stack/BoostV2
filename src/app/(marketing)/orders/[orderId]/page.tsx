@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Download, Star } from "lucide-react";
+import { ArrowLeft, Check, Download, ShieldCheck, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +6,7 @@ import { OrderActions } from "@/components/sections/OrderActions";
 import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import { getMyOrder } from "@/lib/orders";
+import { PROTECT_PLAN_LABELS } from "@/lib/protect";
 import { getMyReviewForOffer, isWithinEditWindow } from "@/lib/reviews";
 
 const paymentMethodLabel: Record<string, string> = {
@@ -87,12 +88,52 @@ export default async function OrderSuccessPage({
           <Row label="Status" value={order.status} />
         </dl>
 
+        {order.protectPlan ? (
+          <div className="flex items-start gap-3 rounded-2xl border border-brand-bg-pill bg-brand-bg-light p-4">
+            <ShieldCheck
+              className="mt-0.5 h-5 w-5 shrink-0 text-brand-success"
+              strokeWidth={1.75}
+            />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="font-display text-[13px] font-medium leading-5 text-brand-text-primary-light">
+                Boost Protect ({PROTECT_PLAN_LABELS[order.protectPlan]})
+              </span>
+              <span className="font-display text-[12px] leading-4 text-brand-text-secondary-light">
+                Eligible for refund until{" "}
+                {order.warrantyEndsAt ? (
+                  <LocalDate iso={order.warrantyEndsAt} format="date" />
+                ) : null}
+                .
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        <dl className="flex flex-col gap-2 border-t border-brand-bg-pill pt-4 font-display text-[14px]">
+          <div className="flex items-baseline justify-between">
+            <dt className="text-brand-text-secondary-light">Subtotal</dt>
+            <dd className="font-medium text-brand-text-primary-light">
+              €{order.price.toFixed(2)}
+            </dd>
+          </div>
+          {order.protectPlan ? (
+            <div className="flex items-baseline justify-between">
+              <dt className="text-brand-text-secondary-light">
+                Boost Protect ({PROTECT_PLAN_LABELS[order.protectPlan]})
+              </dt>
+              <dd className="font-medium text-brand-text-primary-light">
+                €{order.protectFee.toFixed(2)}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+
         <div className="flex items-baseline justify-between border-t border-brand-bg-pill pt-4">
           <span className="font-display text-[13px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary-light">
             Total paid
           </span>
           <span className="font-display text-[28px] font-medium leading-9 text-brand-text-primary-light">
-            €{order.price.toFixed(2)}
+            €{(order.price + order.protectFee).toFixed(2)}
           </span>
         </div>
 

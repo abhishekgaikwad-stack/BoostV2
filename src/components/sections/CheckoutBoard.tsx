@@ -8,9 +8,16 @@ import {
   type PaymentMethodSlug,
 } from "@/components/sections/PaymentMethodSelector";
 import { gameImage } from "@/lib/images";
+import type { ProtectPlan } from "@/lib/protect";
 import type { Account } from "@/types";
 
-export function CheckoutBoard({ offer }: { offer: Account }) {
+export function CheckoutBoard({
+  offer,
+  protectPlan,
+}: {
+  offer: Account;
+  protectPlan: ProtectPlan | null;
+}) {
   const [selectedMethod, setSelectedMethod] =
     useState<PaymentMethodSlug | null>(null);
 
@@ -75,7 +82,11 @@ export function CheckoutBoard({ offer }: { offer: Account }) {
         />
       </div>
 
-      <CheckoutSummary offer={offer} selectedMethod={selectedMethod} />
+      <CheckoutSummary
+        offer={offer}
+        selectedMethod={selectedMethod}
+        protectPlan={protectPlan}
+      />
     </div>
   );
 }

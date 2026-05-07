@@ -1,6 +1,7 @@
 "use server";
 
 import { invalidateListingFeed } from "@/lib/cache";
+import type { ProtectPlan } from "@/lib/protect";
 import { getClientIp, placeOrderPerIpDaily } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -11,12 +12,14 @@ export type PlaceOrderResult =
 /**
  * Calls the `place_order` RPC, which atomically inserts the order and flips
  * the listing's status to SOLD. Validation (auth, listing availability,
- * payment-method allowlist) happens inside the function — we surface its
- * raise messages back to the caller.
+ * payment-method allowlist, protect-plan allowlist, server-side fee
+ * computation) happens inside the function — we surface its raise messages
+ * back to the caller.
  */
 export async function placeOrder(input: {
   offerId: string;
   paymentMethod: string;
+  protectPlan?: ProtectPlan | null;
 }): Promise<PlaceOrderResult> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -38,6 +41,7 @@ export async function placeOrder(input: {
   const { data, error } = await supabase.rpc("place_order", {
     p_account_id: input.offerId,
     p_payment_method: input.paymentMethod,
+    p_protect_plan: input.protectPlan ?? null,
   });
 
   if (error) return { error: error.message };

@@ -1,9 +1,10 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { LocalDate } from "@/components/ui/LocalDate";
 import { gameImage } from "@/lib/images";
 import type { Order, OrderStatus } from "@/lib/orders";
+import { PROTECT_PLAN_LABELS } from "@/lib/protect";
 
 const statusTone: Record<OrderStatus, string> = {
   PENDING: "bg-brand-bg-pill text-brand-text-secondary-light",
@@ -49,6 +50,15 @@ export function OrderCard({ order }: { order: Order }) {
           >
             {order.status}
           </span>
+          {order.protectPlan ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-md bg-brand-success/15 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.1em] text-brand-success"
+              title={`Boost Protect ${PROTECT_PLAN_LABELS[order.protectPlan]}`}
+            >
+              <ShieldCheck className="h-3 w-3" strokeWidth={2} />
+              Protected
+            </span>
+          ) : null}
         </div>
         <p className="font-display text-[12px] leading-4 text-brand-text-secondary-light">
           Placed on{" "}
@@ -63,7 +73,7 @@ export function OrderCard({ order }: { order: Order }) {
 
       <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
         <span className="font-display text-[20px] font-medium leading-7 text-brand-text-primary-light">
-          €{order.price.toFixed(2)}
+          €{(order.price + order.protectFee).toFixed(2)}
         </span>
         <Link
           href={detailsHref}

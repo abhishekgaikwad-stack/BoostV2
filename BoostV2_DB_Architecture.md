@@ -275,6 +275,8 @@ One row per buyer→listing transaction. Created exclusively via the
 | `revealed_at`     | `timestamptz` | Nullable; set on first credential reveal. Drives the buyer-detail page button label "Reveal" → "View" after reveal. |
 | `marked_received_at` | `timestamptz` | Nullable; set when the buyer confirms receipt via the 4-checkbox stage. Locked once set. |
 | `received_checks` | `jsonb`       | Snapshot of the four (or three when no email creds) confirmation flags the buyer ticked: `account_info_works`, `matches_description`, `email_access`, `password_changed`. Audit trail. |
+| `protect_plan`    | `text`        | Nullable; CHECK ∈ `'3m'`, `'6m'`. Boost Protect plan attached to the order, or null if the buyer skipped. Per `0015`. |
+| `protect_fee_cents` | `integer`   | Default `0`, CHECK `>= 0`. Server-computed fee at order time: `round(price_cents * 0.10)` for `3m`, `round(price_cents * 0.14)` for `6m`. Total charged = `price_cents + protect_fee_cents`. |
 | `created_at`      | `timestamptz` | Default `now()`                                         |
 
 Indexing:
@@ -348,7 +350,7 @@ If you see `Could not find the function public.create_listings_bulk` at
 runtime, the function is missing from the database — reapply the SQL in the
 Supabase SQL editor.
 
-### `public.place_order(p_account_id uuid, p_payment_method text)`
+### `public.place_order(p_account_id uuid, p_payment_method text, p_protect_plan text DEFAULT NULL)`
 
 Atomic checkout: validates the listing is `AVAILABLE`, snapshots the
 effective price (honoring an active flash discount), inserts an `orders`
@@ -359,14 +361,23 @@ server-side: `order_number` as `o-` + 8 digits, `transaction_id` as
 rare) `unique_violation` regenerates and tries again.
 
 **Input:** `p_account_id` UUID, `p_payment_method` text (one of the five
-allowed payment slugs).
+allowed payment slugs), `p_protect_plan` text (optional, one of `'3m'`,
+`'6m'`, or null to skip).
 
 **Returns:** single-row table `(order_id text, transaction_id text)`,
 where `order_id` is the public `order_number` (used in URLs and UI).
 
+**Boost Protect:** when `p_protect_plan` is set, the RPC computes the fee
+server-side from the same effective price used for `price_cents`:
+`round(v_price * 0.10)` for `3m`, `round(v_price * 0.14)` for `6m`.
+Persisted in `orders.protect_plan` and `orders.protect_fee_cents`. The
+client never supplies the fee — only the plan. Mirror constants live in
+`src/lib/protect.ts`; both must round identically. Per `0015`.
+
 **Errors raised:** `Not authenticated`, `Invalid payment method`,
-`Listing not found`, `Listing is not available`, `Cannot buy your own
-listing`. The server action surfaces these strings as-is.
+`Invalid protect plan`, `Listing not found`, `Listing is not available`,
+`Cannot buy your own listing`. The server action surfaces these strings
+as-is.
 
 **Called from:** `src/lib/orders-actions.ts::placeOrder`.
 
