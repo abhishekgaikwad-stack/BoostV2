@@ -61,7 +61,7 @@ export async function FlashSaleSection() {
       </div>
 
       <div className="w-full max-w-[288px] justify-self-end">
-        <ProductCard account={flashSaleAccount} tone="dark" />
+        <ProductCard account={flashSaleAccount} />
       </div>
     </section>
   );

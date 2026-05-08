@@ -19,6 +19,10 @@
      Distinct from `brand-accent` (primary CTA) and `brand-warning`
      (#f59e0b, alarm); yellow here signals "shielded / safe", not "watch out". */
   --color-brand-protect: #f9e25d;
+  /* Type-tag accent — used on the product-card category pill / bottom strip
+     ("Game account"). Distinct from `brand-accent` (CTAs); blue here is a
+     neutral category tag, not a clickable action. */
+  --color-brand-tag-game: #3c7aff;
   --color-brand-bg-dark: #000000;
   --color-brand-bg-surface: #171717;
   --color-brand-bg-elevated: #212121;
