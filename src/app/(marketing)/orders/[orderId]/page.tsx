@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Download, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, Check, Download, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -89,22 +89,24 @@ export default async function OrderSuccessPage({
         </dl>
 
         {order.protectPlan ? (
-          <div className="flex items-start gap-3 rounded-2xl border border-brand-bg-pill bg-brand-bg-light p-4">
-            <ShieldCheck
-              className="mt-0.5 h-5 w-5 shrink-0 text-brand-success"
-              strokeWidth={1.75}
+          <div className="flex items-center gap-3 rounded-2xl bg-black p-4 text-white">
+            <Image
+              src="/boost-protect-shield.svg"
+              alt="Boost Protect"
+              width={48}
+              height={48}
+              className="shrink-0"
             />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="font-display text-[13px] font-medium leading-5 text-brand-text-primary-light">
+              <span className="font-display text-[13px] font-medium leading-5 text-brand-text-primary-dark">
                 Boost Protect ({PROTECT_PLAN_LABELS[order.protectPlan]})
               </span>
-              <span className="font-display text-[12px] leading-4 text-brand-text-secondary-light">
-                Eligible for refund until{" "}
-                {order.warrantyEndsAt ? (
+              {order.warrantyEndsAt ? (
+                <span className="font-display text-[12px] leading-4 text-brand-text-secondary-dark">
+                  Eligible for refund until{" "}
                   <LocalDate iso={order.warrantyEndsAt} format="date" />
-                ) : null}
-                .
-              </span>
+                </span>
+              ) : null}
             </div>
           </div>
         ) : null}

@@ -62,7 +62,7 @@ export function BoostProtectModal({ open, priceEuro, onClose, onConfirm }: Props
     >
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative w-full max-w-[455px] rounded-[32px] bg-black p-6 text-white shadow-2xl"
+        className="relative w-full max-w-[455px] rounded-[32px] bg-brand-bg-surface p-6 text-white shadow-2xl"
       >
         <div className="absolute -top-14 left-1/2 -translate-x-1/2">
           <Image
