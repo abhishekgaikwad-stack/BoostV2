@@ -6,6 +6,7 @@ import {
   EditListingForm,
 } from "@/components/sections/EditListingForm";
 import { readCredentials } from "@/lib/credentials";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ListingRow = {
@@ -69,7 +70,7 @@ export default async function EditListingPage({
     oldPrice: row.old_price,
     discountPrice: row.discount_price,
     discountEndsAt: row.discount_ends_at,
-    images: row.images ?? [],
+    images: (row.images ?? []).map(cdnUrl),
     game: row.game,
   };
 

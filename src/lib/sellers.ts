@@ -2,6 +2,7 @@ import {
   findSellerByStoreId as findMockSeller,
   type SellerProfile,
 } from "@/lib/mock";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Queries public.profiles by store_id. Anyone can read (RLS policy lets it)
@@ -29,7 +30,7 @@ export async function resolveSellerProfile(
     return {
       id: data.id,
       name: data.name ?? fallbackName,
-      avatarUrl: data.avatar_url ?? undefined,
+      avatarUrl: cdnUrl(data.avatar_url) || undefined,
       isOnline: mock?.isOnline ?? false,
       rating: mock?.rating ?? 0,
       reviewCount: mock?.reviewCount ?? 0,

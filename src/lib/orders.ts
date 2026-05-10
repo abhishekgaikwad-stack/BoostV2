@@ -8,6 +8,7 @@ import {
   parseProtectPlan,
   warrantyEndsAt,
 } from "@/lib/protect";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type OrderStatus = "PENDING" | "PAID" | "DELIVERED" | "REFUNDED";
@@ -114,7 +115,7 @@ function toOrder(row: OrderRow): Order {
       ? {
           id: row.account.id,
           title: row.account.title,
-          image: row.account.images?.[0] ?? null,
+          image: cdnUrl(row.account.images?.[0]) || null,
           platform: row.account.platform ?? null,
           region: row.account.region ?? null,
           game: {

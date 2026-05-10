@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { SellerListingRowData } from "@/components/cards/SellerListingRow";
 import { CurrentlySellingList } from "@/components/sections/CurrentlySellingList";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ListingRow = {
@@ -61,7 +62,7 @@ export default async function CurrentlySellingPage() {
       title: row.title,
       price: row.price,
       oldPrice: row.old_price,
-      images: row.images ?? [],
+      images: (row.images ?? []).map(cdnUrl),
       status: row.status,
       createdAt: row.created_at,
       game: row.game,

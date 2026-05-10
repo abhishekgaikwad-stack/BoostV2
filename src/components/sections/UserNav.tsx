@@ -15,6 +15,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginPopup } from "@/components/sections/LoginPopup";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +70,7 @@ export function UserNav() {
         signedIn: true,
         isSeller: data?.is_seller ?? false,
         name: data?.name ?? null,
-        avatarUrl: data?.avatar_url ?? null,
+        avatarUrl: cdnUrl(data?.avatar_url) || null,
       });
     };
 
@@ -117,6 +118,8 @@ export function UserNav() {
     [pathname],
   );
   useEffect(() => {
+    // Auto-expand the Store submenu when the menu opens on a Store route.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open && isOnStorePath) setStoreOpen(true);
   }, [open, isOnStorePath]);
 

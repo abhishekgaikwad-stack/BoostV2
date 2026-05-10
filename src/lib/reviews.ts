@@ -1,4 +1,5 @@
 import type { MyReview } from "@/lib/review-types";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type { MyReview } from "@/lib/review-types";
@@ -171,7 +172,7 @@ export async function getSellerReviewsPage(input: {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       reviewerName: reviewerDisplayName(row.reviewer),
-      reviewerAvatarUrl: row.reviewer?.avatar_url ?? null,
+      reviewerAvatarUrl: cdnUrl(row.reviewer?.avatar_url) || null,
       offer: row.offer
         ? {
             id: row.offer.id,

@@ -1,4 +1,5 @@
 import { cached, listingFeedKeys } from "@/lib/cache";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Account, Game, Offer, OfferReview } from "@/types";
 
@@ -80,7 +81,7 @@ export function toAccount(row: AccountRow): Account {
     price: effectiveCents / 100,
     oldPrice: row.old_price != null ? row.old_price / 100 : undefined,
     discountEndsAt: discountActive ? row.discount_ends_at! : undefined,
-    images: row.images ?? [],
+    images: (row.images ?? []).map(cdnUrl),
     status: row.status,
     platform: row.platform ?? undefined,
     region: row.region ?? undefined,
@@ -325,10 +326,10 @@ export async function findOffer(
   return {
     ...account,
     description: row.description ?? "",
-    images: row.images ?? [],
+    images: (row.images ?? []).map(cdnUrl),
     seller: {
       ...account.seller,
-      avatarUrl: row.seller.avatar_url ?? undefined,
+      avatarUrl: cdnUrl(row.seller.avatar_url) || undefined,
       isOnline: true,
       rating: 0,
       reviewCount: reviews.length,

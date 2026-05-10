@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { LoginSuccessPopup } from "@/components/sections/LoginSuccessPopup";
 import { ProfileCard } from "@/components/sections/ProfileCard";
 import { SettingsPanel } from "@/components/sections/SettingsPanel";
+import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function formatRegistered(iso: string | undefined) {
@@ -65,7 +66,11 @@ export default async function ProfilePage({
       : null;
   const oauthAvatar =
     typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
-  const avatarUrl = profile?.avatar_url ?? customAvatar ?? oauthAvatar;
+  // `cdnUrl` rewrites our own S3-origin URLs to the CDN host but leaves
+  // OAuth provider URLs (Google / Discord) untouched.
+  const avatarUrl = cdnUrl(
+    profile?.avatar_url ?? customAvatar ?? oauthAvatar,
+  ) || null;
 
   const isSeller = profile?.is_seller ?? metadata.isSeller === true;
   const storeId =
