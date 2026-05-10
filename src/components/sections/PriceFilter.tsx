@@ -2,6 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DecimalInput } from "@/components/forms/DecimalInput";
 import { cn } from "@/lib/utils";
 
 export function PriceFilter({
@@ -60,16 +61,18 @@ export function PriceFilter({
       ? `${currency}${localMin || min} – ${currency}${localMax || max}`
       : "Any price";
 
+  // Format to exactly 2 decimals so slider drags + on-blur typed values
+  // both land as cents-precision strings ("23.40", not "23.4").
   function setMin(v: string | number) {
-    const next = String(v);
-    const nextNum = clamp(Number.parseFloat(next) || min, min, maxNum);
-    onChange(String(nextNum), localMax);
+    const parsed = Number.parseFloat(String(v));
+    const nextNum = clamp(Number.isFinite(parsed) ? parsed : min, min, maxNum);
+    onChange(nextNum.toFixed(2), localMax);
   }
 
   function setMax(v: string | number) {
-    const next = String(v);
-    const nextNum = clamp(Number.parseFloat(next) || max, minNum, max);
-    onChange(localMin, String(nextNum));
+    const parsed = Number.parseFloat(String(v));
+    const nextNum = clamp(Number.isFinite(parsed) ? parsed : max, minNum, max);
+    onChange(localMin, nextNum.toFixed(2));
   }
 
   const leftPct = ((minNum - min) / (max - min)) * 100;
@@ -107,7 +110,7 @@ export function PriceFilter({
                 type="range"
                 min={min}
                 max={max}
-                step="any"
+                step="5"
                 value={minNum}
                 onChange={(e) => setMin(e.target.value)}
                 className="absolute inset-0 w-full appearance-none bg-transparent pointer-events-none [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-brand-accent-dark [&::-moz-range-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-accent-dark"
@@ -116,7 +119,7 @@ export function PriceFilter({
                 type="range"
                 min={min}
                 max={max}
-                step="any"
+                step="5"
                 value={maxNum}
                 onChange={(e) => setMax(e.target.value)}
                 className="absolute inset-0 w-full appearance-none bg-transparent pointer-events-none [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-brand-accent-dark [&::-moz-range-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-accent-dark"
@@ -139,36 +142,30 @@ export function PriceFilter({
               <span className="font-display text-[11px] font-medium text-brand-text-secondary-light">
                 Min ({currency})
               </span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={min}
-                max={max}
+              <DecimalInput
                 value={localMin}
-                onChange={(e) => onChange(e.target.value, localMax)}
+                onValueChange={(v) => onChange(v, localMax)}
                 onBlur={(e) =>
                   e.target.value !== "" && setMin(e.target.value)
                 }
+                max={max}
                 placeholder={String(min)}
-                className="h-10 rounded-lg bg-brand-bg-pill px-3 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="h-10 w-full min-w-0 rounded-lg bg-brand-bg-pill px-3 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
               />
             </label>
             <label className="flex flex-1 flex-col gap-1">
               <span className="font-display text-[11px] font-medium text-brand-text-secondary-light">
                 Max ({currency})
               </span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={min}
-                max={max}
+              <DecimalInput
                 value={localMax}
-                onChange={(e) => onChange(localMin, e.target.value)}
+                onValueChange={(v) => onChange(localMin, v)}
                 onBlur={(e) =>
                   e.target.value !== "" && setMax(e.target.value)
                 }
+                max={max}
                 placeholder={String(max)}
-                className="h-10 rounded-lg bg-brand-bg-pill px-3 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="h-10 w-full min-w-0 rounded-lg bg-brand-bg-pill px-3 font-display text-[14px] font-medium text-brand-text-primary-light placeholder:text-brand-text-tertiary-dark focus:outline-none"
               />
             </label>
           </div>

@@ -30,14 +30,12 @@ export function SellerListings({
     return Array.from(seen, ([slug, name]) => ({ slug, name }));
   }, [offers]);
 
-  const priceBounds = useMemo(() => {
-    if (offers.length === 0) return { min: 0, max: 100 };
-    const prices = offers.map((o) => o.price);
-    return {
-      min: Math.floor(Math.min(...prices)),
-      max: Math.ceil(Math.max(...prices)),
-    };
-  }, [offers]);
+  // Fixed slider range — typical-price ceiling, not the hard listing cap
+  // (PRICE_MAX_EUR = 1000). Listings priced above this are rare; users who
+  // want them can still type values past 500 via the Max box if we lift
+  // the cap in DecimalInput later.
+  const PRICE_FILTER_MIN = 0;
+  const PRICE_FILTER_MAX = 500;
 
   const visible = useMemo(() => {
     let list = offers;
@@ -88,8 +86,8 @@ export function SellerListings({
         />
 
         <PriceFilter
-          min={priceBounds.min}
-          max={priceBounds.max}
+          min={PRICE_FILTER_MIN}
+          max={PRICE_FILTER_MAX}
           value={[minPrice, maxPrice]}
           onChange={(next, nextMax) => {
             setMinPrice(next);

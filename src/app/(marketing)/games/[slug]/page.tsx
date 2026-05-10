@@ -1,8 +1,8 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ProductCard } from "@/components/cards/ProductCard";
 import { FaqSection } from "@/components/sections/FaqSection";
+import { GameListingsBoard } from "@/components/sections/GameListingsBoard";
 import { faqsForGame } from "@/lib/mock";
 import { findGameBySlug, offersForGame } from "@/lib/offers";
 
@@ -16,7 +16,11 @@ export default async function GameListingPage({
   const game = await findGameBySlug(slug);
   if (!game) notFound();
 
-  const { items: offers } = await offersForGame(slug);
+  // Wider fetch than the default 24 so client-side search/filter/sort works
+  // over a meaningful set without a load-more flow. Revisit when per-game
+  // catalogs cross ~500 listings — at that point this needs to move
+  // server-side via URL params + cursor pagination.
+  const { items: offers } = await offersForGame(slug, { limit: 100 });
 
   return (
     <div className="flex flex-col gap-8">
@@ -32,17 +36,7 @@ export default async function GameListingPage({
         {game.name} accounts
       </h1>
 
-      {offers.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {offers.map((offer) => (
-            <ProductCard key={offer.id} account={offer} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-brand-border-light bg-brand-bg-light p-10 text-center font-display text-[14px] font-medium text-brand-text-secondary-light">
-          No listings for {game.name} yet — check back soon.
-        </div>
-      )}
+      <GameListingsBoard offers={offers} gameName={game.name} />
 
       <FaqSection faqs={faqsForGame(slug)} />
     </div>
