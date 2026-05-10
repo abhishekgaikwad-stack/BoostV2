@@ -6,8 +6,18 @@ export const S3_BUCKET = process.env.S3_BUCKET ?? "boost-v2-images";
 // CDN base — set this to the CloudFront distribution (or custom CNAME) once
 // the bucket is fronted. When unset, all helpers fall back to direct S3
 // origin URLs so local dev / pre-CDN setups keep working.
-const CDN_BASE =
-  process.env.NEXT_PUBLIC_S3_PUBLIC_URL?.replace(/\/$/, "") ?? "";
+//
+// Normalizes the env value defensively: strips trailing slash, prepends
+// `https://` if the user pasted a bare hostname or a protocol-relative
+// `//host` form. Vercel's image optimizer rejects protocol-relative URLs
+// with `INVALID_IMAGE_OPTIMIZE_REQUEST`, which is why this matters.
+const CDN_BASE = (() => {
+  const raw = process.env.NEXT_PUBLIC_S3_PUBLIC_URL;
+  if (!raw) return "";
+  const trimmed = raw.replace(/\/$/, "");
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed.replace(/^\/*/, "")}`;
+})();
 
 const S3_ORIGIN_HOST = `${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com`;
 const S3_ORIGIN = `https://${S3_ORIGIN_HOST}`;
