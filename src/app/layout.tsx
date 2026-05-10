@@ -3,6 +3,7 @@ import { Inter, DM_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Suspense } from "react";
 import { LoginSuccessToast } from "@/components/auth/LoginSuccessToast";
+import { assetUrl } from "@/lib/images";
 import "./globals.css";
 
 const gintoNord = localFont({
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   title: "Boost",
   description: "Game account marketplace",
   icons: {
-    icon: "https://boost-v2-images.s3.ap-south-1.amazonaws.com/boost-logo-icon.svg",
+    icon: assetUrl("boost-logo-icon.svg"),
   },
 };
 
