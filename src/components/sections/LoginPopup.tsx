@@ -2,6 +2,7 @@
 
 import { Mail, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { requestLoginOtp } from "@/lib/auth-actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -43,15 +44,16 @@ export function LoginPopup({
     event.preventDefault();
     setStatus("sending");
     setErrorMsg(null);
-    const { error } = await supabase.auth.signInWithOtp({
+    // Routed through a server action so we can rate-limit per-IP and
+    // per-email; the client used to call Supabase auth directly, which
+    // gave no chokepoint between an attacker and the email-OTP endpoint.
+    const result = await requestLoginOtp({
       email,
-      options: {
-        emailRedirectTo: buildCallbackUrl(),
-      },
+      redirectTo: buildCallbackUrl(),
     });
-    if (error) {
+    if ("error" in result) {
       setStatus("error");
-      setErrorMsg(error.message);
+      setErrorMsg(result.error);
     } else {
       setStatus("sent");
     }
@@ -74,10 +76,14 @@ export function LoginPopup({
 
   useEffect(() => {
     if (!open) {
+      // Reset the popup back to its default mode/state when it closes so
+      // the next open doesn't show stale error text or a half-filled email.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setMode("methods");
       setStatus("idle");
       setErrorMsg(null);
       setEmail("");
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open]);
 

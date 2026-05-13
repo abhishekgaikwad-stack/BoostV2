@@ -189,6 +189,9 @@ src/
     reviews-actions.ts      submitReview (calls submit_review RPC)
     review-types.ts         MyReview type + isWithinEditWindow (client-safe,
                             no server imports)
+    auth-actions.ts         requestLoginOtp (server-side wrapper around
+                            supabase.auth.signInWithOtp so the magic-link
+                            flow can be rate-limited per IP + per email)
     invoice.tsx             InvoiceDocument + renderInvoicePdf (Node-only)
     ai-detect.ts            detectListingAttrs (server-only Anthropic call)
     rate-limit.ts           Upstash limiters (aiDetect per-user/per-IP,
@@ -235,6 +238,8 @@ BoostV2_DB_Architecture.md  live-DB reference doc (tables, RLS, RPC, indexes)
 | Listing-image presign limit  | `30/min per user`  | `src/lib/rate-limit.ts` (`listingImagePresignPerUserPerMinute`) |
 | Avatar presign rate limit    | `5/min per user`   | `src/lib/rate-limit.ts` (`avatarPresignPerUserPerMinute`)  |
 | Invoice download rate limit  | `30/min per user`  | `src/lib/rate-limit.ts` (`invoicePerUserPerMinute`) |
+| Login OTP rate limit (IP)    | `20/h per IP`      | `src/lib/rate-limit.ts` (`loginOtpPerIpPerHour`)    |
+| Login OTP rate limit (email) | `5/h per email`    | `src/lib/rate-limit.ts` (`loginOtpPerEmailPerHour`) |
 | Blanket per-IP cap (proxy)   | `600/min per IP`   | `src/lib/rate-limit.ts` (`globalPerIpPerMinute`) — applied in `src/proxy.ts` |
 | Listing-feed cache TTL — games  | `1 h`           | `src/lib/offers.ts` (`listGames`)                |
 | Listing-feed cache TTL — recent | `5 m`           | `src/lib/offers.ts` (`recentOffers`, first page only) |
@@ -420,6 +425,8 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    | `listingImagePresignPerUserPerMinute` | 30/1m | `user.id` | `/api/uploads/listing-image`                           |
    | `avatarPresignPerUserPerMinute`  | 5/1m    | `user.id`   | `/api/uploads/avatar`                                  |
    | `invoicePerUserPerMinute`        | 30/1m   | `user.id`   | `/api/invoice/[orderId]` — CPU-heavy PDF render        |
+   | `loginOtpPerIpPerHour`           | 20/1h   | client IP   | `auth-actions.ts::requestLoginOtp` — paired with email cap below |
+   | `loginOtpPerEmailPerHour`        | 5/1h    | email       | `auth-actions.ts::requestLoginOtp` — catches inbox-flood from rotating IPs |
    | `globalPerIpPerMinute`           | 600/1m  | client IP   | `src/proxy.ts` (blanket cap before any route)          |
 2. Stacked-limit pattern (AI detect): user + IP run in parallel via
    `Promise.all` so legit requests pay one round-trip. Both buckets

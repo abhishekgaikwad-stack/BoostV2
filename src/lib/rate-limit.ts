@@ -156,3 +156,30 @@ export const invoicePerUserPerMinute = new Ratelimit({
   analytics: true,
   prefix: "rl:invoice:user",
 });
+
+/**
+ * 20 magic-link requests per source IP per hour. Catches one attacker
+ * spamming login-OTP requests across many target emails. Supabase has
+ * a project-wide 30/h ceiling on auth emails which would mute the
+ * impact eventually, but we want to throw 429 long before that — both
+ * to protect Supabase email quota and to deny the attacker feedback.
+ */
+export const loginOtpPerIpPerHour = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, "1 h"),
+  analytics: true,
+  prefix: "rl:login-otp:ip",
+});
+
+/**
+ * 5 magic-link requests per email address per hour. Catches an attacker
+ * trying to flood ONE victim's inbox from rotating IPs (each under the
+ * per-IP cap but converging on one email). Key is the lowercased email
+ * itself so this doesn't depend on the source IP at all.
+ */
+export const loginOtpPerEmailPerHour = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "1 h"),
+  analytics: true,
+  prefix: "rl:login-otp:email",
+});
