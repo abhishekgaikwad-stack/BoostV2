@@ -128,3 +128,17 @@ export const avatarPresignPerUserPerMinute = new Ratelimit({
   analytics: true,
   prefix: "rl:upload-avatar:user",
 });
+
+/**
+ * Blanket per-IP cap applied in `src/proxy.ts` BEFORE any route handler
+ * sees the request. Single window covers every path — catches broad
+ * scraping / bot scanning that wouldn't trip any single per-action limit
+ * because it spreads across many endpoints. 600/min is well above any
+ * human (a fast user clicks ~1/sec → 60/min); tune down if abuse appears.
+ */
+export const globalPerIpPerMinute = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(600, "1 m"),
+  analytics: true,
+  prefix: "rl:global:ip",
+});
