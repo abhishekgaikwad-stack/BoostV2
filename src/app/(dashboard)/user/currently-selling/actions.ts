@@ -50,7 +50,7 @@ export async function deleteListing(
   }
 
   const gameSlug = (listing.game as unknown as { slug: string } | null)?.slug;
-  await invalidateListingFeed();
+  await invalidateListingFeed(gameSlug ?? undefined);
   revalidatePath("/user/currently-selling");
   revalidatePath("/");
   if (gameSlug) revalidatePath(`/games/${gameSlug}`);

@@ -234,9 +234,13 @@ BoostV2_DB_Architecture.md  live-DB reference doc (tables, RLS, RPC, indexes)
 | Submit review rate limit     | `10/min per user`  | `src/lib/rate-limit.ts` (`submitReviewPerUserPerMinute`) |
 | Listing-image presign limit  | `30/min per user`  | `src/lib/rate-limit.ts` (`listingImagePresignPerUserPerMinute`) |
 | Avatar presign rate limit    | `5/min per user`   | `src/lib/rate-limit.ts` (`avatarPresignPerUserPerMinute`)  |
+| Invoice download rate limit  | `30/min per user`  | `src/lib/rate-limit.ts` (`invoicePerUserPerMinute`) |
+| Blanket per-IP cap (proxy)   | `600/min per IP`   | `src/lib/rate-limit.ts` (`globalPerIpPerMinute`) — applied in `src/proxy.ts` |
 | Listing-feed cache TTL — games  | `1 h`           | `src/lib/offers.ts` (`listGames`)                |
 | Listing-feed cache TTL — recent | `5 m`           | `src/lib/offers.ts` (`recentOffers`, first page only) |
 | Listing-feed cache TTL — flash  | `3 m`           | `src/lib/offers.ts` (`firstFlashOffer`)          |
+| Listing-feed cache TTL — game offers | `5 m`      | `src/lib/offers.ts` (`offersForGame`, first page only) |
+| Seller review stats cache TTL  | `15 m`           | `src/lib/reviews.ts` (`getSellerReviewStats`)    |
 | Default listing limit        | `24`      | `src/lib/offers.ts` (`DEFAULT_LISTING_LIMIT`) |
 | Default review page limit    | `10`      | `src/lib/reviews.ts` (`DEFAULT_REVIEW_LIMIT`) |
 | Wishlist page limit          | `48`      | `src/app/(marketing)/wishlist/page.tsx` |
@@ -415,6 +419,8 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    | `submitReviewPerUserPerMinute`   | 10/1m   | `user.id`   | `reviews-actions.ts::submitReview`                     |
    | `listingImagePresignPerUserPerMinute` | 30/1m | `user.id` | `/api/uploads/listing-image`                           |
    | `avatarPresignPerUserPerMinute`  | 5/1m    | `user.id`   | `/api/uploads/avatar`                                  |
+   | `invoicePerUserPerMinute`        | 30/1m   | `user.id`   | `/api/invoice/[orderId]` — CPU-heavy PDF render        |
+   | `globalPerIpPerMinute`           | 600/1m  | client IP   | `src/proxy.ts` (blanket cap before any route)          |
 2. Stacked-limit pattern (AI detect): user + IP run in parallel via
    `Promise.all` so legit requests pay one round-trip. Both buckets
    tick on every call regardless of outcome — independent counters.
@@ -437,7 +443,7 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
    (or missing env in dev) it transparently falls back to the loader.
    Nullish results are not cached so newly-arrived rows surface
    immediately.
-2. Three Tier 1 reads in `src/lib/offers.ts` are wrapped:
+2. Four reads in `src/lib/offers.ts` are wrapped:
    - `listGames(limit)` — TTL **1 h**, key `feed:games:{limit}`. No
      invalidation hook (games are seeded by DB migration; no
      user-facing path mutates them).
@@ -445,17 +451,36 @@ const [state, formAction, pending] = useActionState(myAction, initialState);
      **Only the first page is cached** — paginated calls past `cursor`
      bypass to keep the key space bounded.
    - `firstFlashOffer()` — TTL **3 m**, key `feed:flash:first`.
-3. `invalidateListingFeed()` busts `recentOffers` + `firstFlashOffer`
-   keys (`listGames` not currently invalidated, see above). Wired into
-   every `accounts` mutation: `createListing`, `createBulkListings`,
-   `deleteListing`, `updateListing`, and `placeOrder` (which flips
-   status to SOLD via the RPC). Note: `placeOrder` did not previously
-   call `revalidatePath('/')` — the cache invalidation now also
-   refreshes the homepage rails post-sale.
-4. Hard-coded invalidation for `recentOffers` covers `[10]` (the only
-   limit currently in use). If a new caller passes a different limit
-   and needs to track listing mutations, add it to
-   `RECENT_OFFERS_LIMITS` in `cache.ts`.
+   - `offersForGame(slug, { limit })` — TTL **5 m**, key
+     `feed:game-offers:{slug}:{limit}`. First page only. Backs the
+     `/games/[slug]` listing page (limit 100) and `similarOffers`
+     (limit 6).
+3. `invalidateListingFeed(slug?)` busts the global rails (`recentOffers`
+   + `firstFlashOffer`) every call. When `slug` is passed, also busts
+   the per-game `offersForGame` keys for that slug. Wired into every
+   `accounts` mutation:
+   - `createListing` → passes the new listing's `gameSlug`
+   - `createBulkListings` → passes the upload's `gameSlug`
+   - `deleteListing` → fetches `game.slug` from the row before delete
+   - `updateListing` → fetches `game.slug` from the row before update
+   - `placeOrder` → takes optional `gameSlug` from caller
+     (`CheckoutSummary` pipes `offer.game.slug` through)
+4. Hard-coded invalidation lists in `cache.ts`:
+   - `RECENT_OFFERS_LIMITS = [10]` — limits used by `recentOffers`
+   - `OFFERS_FOR_GAME_LIMITS = [6, 100]` — limits used by
+     `offersForGame` (similarOffers + game-page)
+   If a new caller passes a different limit and needs invalidation,
+   add it to the matching list.
+
+### Seller review stats cache
+1. `getSellerReviewStats(sellerId)` in `src/lib/reviews.ts` is wrapped
+   in a 15-min Redis cache (key `reviews:seller:{sellerId}:stats`).
+   This is the biggest avoidable DB load on `/seller/{storeId}` — the
+   function loads every rating row and aggregates in JS.
+2. `invalidateSellerReviewStats(sellerId)` busts the key. Wired into
+   `submitReview` action so new ratings reflect immediately. The
+   action's order-lookup was extended to also pull `seller_id` for
+   the invalidation call.
 
 ### Boost Protect (extended warranty)
 1. Optional add-on selected on the PDP popup (`BoostProtectModal`,

@@ -30,10 +30,13 @@ export async function updateListing(
   // Fetch the row to confirm ownership + read the current discount state so
   // we know whether to accept new discount inputs or preserve the active one.
   // RLS would also block a wrong-user update, but asserting here gives us a
-  // clear error message.
+  // clear error message. `game:games(slug)` is pulled so we can bust the
+  // per-game listing cache after the update.
   const { data: existing, error: fetchError } = await supabase
     .from("accounts")
-    .select("id, seller_id, status, game_id, discount_price, discount_ends_at")
+    .select(
+      "id, seller_id, status, game_id, discount_price, discount_ends_at, game:games(slug)",
+    )
     .eq("id", offerId)
     .maybeSingle();
   if (fetchError || !existing) return { error: "Listing not found." };
@@ -128,8 +131,11 @@ export async function updateListing(
   const credsResult = await saveCredentials(offerId, user.id, creds);
   if (credsResult.error) return { error: credsResult.error };
 
-  await invalidateListingFeed();
+  const gameSlug =
+    (existing.game as unknown as { slug: string } | null)?.slug ?? undefined;
+  await invalidateListingFeed(gameSlug);
   revalidatePath(`/user/currently-selling/${offerId}`);
   revalidatePath("/");
+  if (gameSlug) revalidatePath(`/games/${gameSlug}`);
   return { ok: true };
 }

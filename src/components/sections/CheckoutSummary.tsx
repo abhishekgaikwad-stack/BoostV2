@@ -39,6 +39,7 @@ export function CheckoutSummary({
       offerId: offer.id,
       paymentMethod: selectedMethod,
       protectPlan,
+      gameSlug: offer.game.slug,
     });
     if ("error" in result) {
       setError(result.error);

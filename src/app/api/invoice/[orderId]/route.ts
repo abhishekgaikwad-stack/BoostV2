@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { renderInvoicePdf } from "@/lib/invoice";
 import { getMyOrder } from "@/lib/orders";
+import { invoicePerUserPerMinute } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // PDF generation pulls in @react-pdf/renderer (Node-only — yoga, fontkit, etc.).
@@ -19,6 +20,27 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  }
+
+  // Throttle before the (CPU-heavy) PDF render. A buyer hammering their
+  // own order's invoice still burns Node compute even though ownership
+  // is enforced below.
+  const quota = await invoicePerUserPerMinute.limit(user.id);
+  if (!quota.success) {
+    return NextResponse.json(
+      {
+        error: "Too many invoice downloads. Try again in a minute.",
+        retryAt: quota.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(quota.limit),
+          "X-RateLimit-Remaining": String(quota.remaining),
+          "X-RateLimit-Reset": String(quota.reset),
+        },
+      },
+    );
   }
 
   const order = await getMyOrder(orderId);

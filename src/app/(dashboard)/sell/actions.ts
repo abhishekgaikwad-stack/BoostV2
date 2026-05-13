@@ -137,7 +137,7 @@ export async function createListing(
   }
 
   const gameSlug = (data.game as unknown as { slug: string }).slug;
-  await invalidateListingFeed();
+  await invalidateListingFeed(gameSlug);
   revalidatePath("/");
   revalidatePath(`/games/${gameSlug}`);
   redirect(`/games/${gameSlug}/${data.id}`);

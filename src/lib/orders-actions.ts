@@ -20,6 +20,10 @@ export async function placeOrder(input: {
   offerId: string;
   paymentMethod: string;
   protectPlan?: ProtectPlan | null;
+  /** Slug of the listing's game — used to bust the per-game offers cache.
+   *  Optional so older callers keep working; passed in from CheckoutSummary
+   *  which already has the full Account in scope. */
+  gameSlug?: string;
 }): Promise<PlaceOrderResult> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -51,9 +55,9 @@ export async function placeOrder(input: {
     return { error: "Could not place order." };
   }
   // The RPC flipped the listing's status to SOLD; bust the AVAILABLE-only
-  // homepage rails so the just-sold listing doesn't linger there for the
-  // remainder of the cache TTL.
-  await invalidateListingFeed();
+  // homepage rails AND the per-game offers cache so the just-sold listing
+  // doesn't linger there for the remainder of the TTL.
+  await invalidateListingFeed(input.gameSlug);
   return {
     ok: true,
     orderId: row.order_id as string,

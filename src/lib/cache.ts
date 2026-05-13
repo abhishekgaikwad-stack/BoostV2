@@ -61,14 +61,16 @@ export async function invalidate(...keys: string[]): Promise<void> {
 // ---------- Listing-feed cache keys ----------
 //
 // These back the public homepage / game-listing rails (`recentOffers`,
-// `firstFlashOffer`, `listGames`). Any code path that mutates a row in
-// `accounts` in a way that affects the AVAILABLE feed should call
-// `invalidateListingFeed()` so the next homepage hit reflects the change
-// without waiting on the TTL.
+// `firstFlashOffer`, `listGames`, `offersForGame`). Any code path that
+// mutates a row in `accounts` in a way that affects the AVAILABLE feed
+// should call `invalidateListingFeed(slug?)` so the next render reflects
+// the change without waiting on the TTL.
 export const listingFeedKeys = {
   recentOffers: (limit: number) => `feed:recent:${limit}`,
   firstFlashOffer: () => "feed:flash:first",
   listGames: (limit: number) => `feed:games:${limit}`,
+  offersForGame: (slug: string, limit: number) =>
+    `feed:game-offers:${slug}:${limit}`,
 };
 
 // Limits currently passed to `recentOffers` from caller code. If a new
@@ -76,9 +78,41 @@ export const listingFeedKeys = {
 // mutations, add that limit here.
 const RECENT_OFFERS_LIMITS = [10] as const;
 
-export async function invalidateListingFeed(): Promise<void> {
-  await invalidate(
+// Limits currently passed to `offersForGame`: 100 from the game-listing
+// page, 6 from similarOffers (PDP related-products rail). Same rule as
+// above — add to this list if a new caller uses a new limit.
+const OFFERS_FOR_GAME_LIMITS = [6, 100] as const;
+
+/**
+ * Bust the public listing-feed caches. Always busts the global rails
+ * (`recentOffers`, `firstFlashOffer`). When `slug` is provided, also
+ * busts the per-game offer-list cache for that slug — call sites pass
+ * the slug of the affected listing when known so game-detail pages
+ * reflect the change immediately rather than waiting on the 5-min TTL.
+ */
+export async function invalidateListingFeed(slug?: string): Promise<void> {
+  const keys: string[] = [
     ...RECENT_OFFERS_LIMITS.map((n) => listingFeedKeys.recentOffers(n)),
     listingFeedKeys.firstFlashOffer(),
-  );
+  ];
+  if (slug) {
+    for (const limit of OFFERS_FOR_GAME_LIMITS) {
+      keys.push(listingFeedKeys.offersForGame(slug, limit));
+    }
+  }
+  await invalidate(...keys);
+}
+
+// ---------- Seller-review-stats cache ----------
+//
+// `getSellerReviewStats` loads every rating row for a seller and
+// aggregates in JS (see comment in `src/lib/reviews.ts`). Cheap to
+// cache — invalidate on every new / edited review for that seller.
+export const sellerReviewStatsKey = (sellerId: string) =>
+  `reviews:seller:${sellerId}:stats`;
+
+export async function invalidateSellerReviewStats(
+  sellerId: string,
+): Promise<void> {
+  await invalidate(sellerReviewStatsKey(sellerId));
 }

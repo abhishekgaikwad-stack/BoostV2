@@ -142,3 +142,17 @@ export const globalPerIpPerMinute = new Ratelimit({
   analytics: true,
   prefix: "rl:global:ip",
 });
+
+/**
+ * 30 invoice PDF downloads per buyer per minute. Invoice generation is
+ * CPU-heavy (`@react-pdf/renderer` ships a Node-only renderer). Even
+ * though the route checks order ownership, a buyer hammering their own
+ * order's invoice can burn serverless compute and pile up cold starts.
+ * 30/min is plenty for any human + browser-prefetch combo.
+ */
+export const invoicePerUserPerMinute = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1 m"),
+  analytics: true,
+  prefix: "rl:invoice:user",
+});

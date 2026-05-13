@@ -194,27 +194,34 @@ export async function offersForGame(
   gameSlug: string,
   { limit = DEFAULT_LISTING_LIMIT, cursor = null }: ListingQuery = {},
 ): Promise<ListingPage> {
-  const supabase = await createSupabaseServerClient();
-  const query = withCursor(
-    supabase
-      .from("accounts")
-      .select(ACCOUNT_SELECT)
-      .eq("status", "AVAILABLE")
-      .eq("game.slug", gameSlug)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(limit + 1),
-    cursor,
-  );
-  const { data, error } = await query;
-  if (error || !data) return { items: [], nextCursor: null };
-  // Defensive post-filter — the `game.slug` filter already runs SQL-side, but
-  // PostgREST relation filtering has edge cases. Filtered-out rows can mask a
-  // `hasMore` signal at the page boundary; acceptable given how rare this is.
-  const rows = (data as unknown as AccountRow[]).filter(
-    (row) => row.game?.slug === gameSlug,
-  );
-  return buildPage(rows, limit);
+  const run = async (): Promise<ListingPage> => {
+    const supabase = await createSupabaseServerClient();
+    const query = withCursor(
+      supabase
+        .from("accounts")
+        .select(ACCOUNT_SELECT)
+        .eq("status", "AVAILABLE")
+        .eq("game.slug", gameSlug)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(limit + 1),
+      cursor,
+    );
+    const { data, error } = await query;
+    if (error || !data) return { items: [], nextCursor: null };
+    // Defensive post-filter — the `game.slug` filter already runs SQL-side, but
+    // PostgREST relation filtering has edge cases. Filtered-out rows can mask a
+    // `hasMore` signal at the page boundary; acceptable given how rare this is.
+    const rows = (data as unknown as AccountRow[]).filter(
+      (row) => row.game?.slug === gameSlug,
+    );
+    return buildPage(rows, limit);
+  };
+  // Only cache the first page — paginated calls past a cursor are rare
+  // and would multiply the key space. Invalidated per-slug via
+  // invalidateListingFeed(slug) from every accounts mutation path.
+  if (cursor) return run();
+  return cached(listingFeedKeys.offersForGame(gameSlug, limit), 5 * 60, run);
 }
 
 export async function offersForSeller(

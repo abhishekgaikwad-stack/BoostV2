@@ -1,3 +1,4 @@
+import { cached, sellerReviewStatsKey } from "@/lib/cache";
 import type { MyReview } from "@/lib/review-types";
 import { cdnUrl } from "@/lib/s3";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -50,37 +51,45 @@ function emptyStats(): SellerReviewStats {
  * distribution. Loads the rating column for every review (no SQL
  * aggregate to keep the helper simple); fine at marketplace scale, swap
  * for an RPC if a single seller ever crosses ~tens of thousands of rows.
+ *
+ * Wrapped in a 15-minute Redis cache — every seller-profile view hits
+ * this, so the per-seller per-rating row scan is the biggest avoidable
+ * Postgres load on that page. Invalidated explicitly from `submitReview`
+ * (and any future review-mutation path) so new ratings show up
+ * immediately rather than waiting on the TTL.
  */
 export async function getSellerReviewStats(
   sellerId: string,
 ): Promise<SellerReviewStats> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("offer_reviews")
-    .select("rating")
-    .eq("seller_id", sellerId);
-  if (error || !data) return emptyStats();
+  return cached(sellerReviewStatsKey(sellerId), 15 * 60, async () => {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("offer_reviews")
+      .select("rating")
+      .eq("seller_id", sellerId);
+    if (error || !data) return emptyStats();
 
-  const distribution: SellerReviewStats["distribution"] = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-  };
-  let total = 0;
-  for (const row of data) {
-    const r = row.rating as number;
-    if (r >= 1 && r <= 5) {
-      distribution[r as 1 | 2 | 3 | 4 | 5] += 1;
-      total += r;
+    const distribution: SellerReviewStats["distribution"] = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+    let total = 0;
+    for (const row of data) {
+      const r = row.rating as number;
+      if (r >= 1 && r <= 5) {
+        distribution[r as 1 | 2 | 3 | 4 | 5] += 1;
+        total += r;
+      }
     }
-  }
-  return {
-    avgRating: data.length > 0 ? total / data.length : 0,
-    reviewCount: data.length,
-    distribution,
-  };
+    return {
+      avgRating: data.length > 0 ? total / data.length : 0,
+      reviewCount: data.length,
+      distribution,
+    };
+  });
 }
 
 const SELLER_REVIEW_SELECT = `

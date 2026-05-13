@@ -200,7 +200,7 @@ export async function createBulkListings(
 
   if (error) return { ok: false, error: error.message };
 
-  await invalidateListingFeed();
+  await invalidateListingFeed(gameSlug);
   revalidatePath("/user/currently-selling");
   revalidatePath("/");
   revalidatePath(`/games/${gameSlug}`);

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateSellerReviewStats } from "@/lib/cache";
 import { submitReviewPerUserPerMinute } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -45,9 +46,11 @@ export async function submitReview(input: {
     return { error: "Review cannot exceed 1500 characters." };
   }
 
+  // Also fetch seller_id so we can bust the seller's cached review stats
+  // after a successful insert/edit. Same query, one extra column.
   const { data: order, error: lookupError } = await supabase
     .from("orders")
-    .select("account_id")
+    .select("account_id, seller_id")
     .eq("order_number", input.orderId)
     .eq("buyer_id", user.id)
     .maybeSingle();
@@ -62,6 +65,9 @@ export async function submitReview(input: {
   });
   if (error) return { error: error.message };
 
+  if (order.seller_id) {
+    await invalidateSellerReviewStats(order.seller_id as string);
+  }
   revalidatePath(`/orders/${input.orderId}`);
   return { ok: true, reviewId: data as string };
 }
