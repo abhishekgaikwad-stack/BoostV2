@@ -6,6 +6,17 @@ import { LoginSuccessToast } from "@/components/auth/LoginSuccessToast";
 import { assetUrl } from "@/lib/images";
 import "./globals.css";
 
+// Resolved once at module init so the preconnect host stays in sync with
+// whatever NEXT_PUBLIC_S3_PUBLIC_URL points at. Matches the resolution in
+// src/lib/images.ts.
+const CDN_ORIGIN = (() => {
+  try {
+    return new URL(assetUrl("")).origin;
+  } catch {
+    return null;
+  }
+})();
+
 const gintoNord = localFont({
   src: "./fonts/ABCGintoNordWidthsVariable-Trial-BF651b7b7caffd5.ttf",
   variable: "--font-ginto",
@@ -44,6 +55,12 @@ export default function RootLayout({
       lang="en"
       className={`${gintoNord.variable} ${inter.variable} ${dmMono.variable} h-full antialiased`}
     >
+      {CDN_ORIGIN ? (
+        <>
+          <link rel="preconnect" href={CDN_ORIGIN} crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href={CDN_ORIGIN} />
+        </>
+      ) : null}
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <Suspense fallback={null}>

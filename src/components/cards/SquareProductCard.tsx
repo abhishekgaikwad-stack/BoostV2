@@ -8,10 +8,13 @@ export function SquareProductCard({
   game,
   tone = "light",
   className,
+  priority = false,
 }: {
   game: Game;
   tone?: "light" | "dark";
   className?: string;
+  /** Set on the LCP card so Next emits <link rel="preload"> for the cover. */
+  priority?: boolean;
 }) {
   return (
     <Link
@@ -25,6 +28,7 @@ export function SquareProductCard({
             alt={game.name}
             fill
             sizes="80px"
+            priority={priority}
             className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
           />
         ) : null}

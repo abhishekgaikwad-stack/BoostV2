@@ -14,8 +14,10 @@ export async function PopularGamesCarousel() {
           Popular Games
         </h2>
         <div className="grid grid-cols-4 gap-x-4 gap-y-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
-          {popularGames.map((game) => (
-            <SquareProductCard key={game.id} game={game} />
+          {popularGames.map((game, i) => (
+            // First card sits at the top of the grid above the fold and is
+            // the homepage LCP candidate — preload its cover.
+            <SquareProductCard key={game.id} game={game} priority={i === 0} />
           ))}
         </div>
         <button

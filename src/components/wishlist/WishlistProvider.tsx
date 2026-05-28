@@ -1,13 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useTransition } from "react";
+import { createContext, useContext, useEffect, useState, useTransition } from "react";
 import { useAuthPrompt } from "@/components/auth/AuthPromptProvider";
 import { toggleWishlist } from "@/lib/wishlist-actions";
 
 type WishlistContextValue = {
   isWishlisted: (accountId: string) => boolean;
   toggle: (accountId: string) => void;
-  /** `false` for anonymous users — hearts still render but toggling is a no-op. */
+  /** `false` once we know the user is anonymous; toggling becomes a login prompt. */
   enabled: boolean;
   /** True while a toggle is in-flight; card can disable the button if it cares. */
   pending: boolean;
@@ -15,23 +15,38 @@ type WishlistContextValue = {
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
 
-export function WishlistProvider({
-  initialIds,
-  enabled,
-  children,
-}: {
-  initialIds: string[];
-  enabled: boolean;
-  children: React.ReactNode;
-}) {
-  const [ids, setIds] = useState<Set<string>>(() => new Set(initialIds));
+type AuthState = "unknown" | "anon" | "authed";
+
+export function WishlistProvider({ children }: { children: React.ReactNode }) {
+  const [ids, setIds] = useState<Set<string>>(() => new Set());
+  const [auth, setAuth] = useState<AuthState>("unknown");
   const [pending, startTransition] = useTransition();
   const { requireLogin } = useAuthPrompt();
 
+  // Hydrate wishlist state after the (cacheable) shell mounts. The shell HTML
+  // is identical for every visitor so it can be served from the CDN.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/wishlist/ids", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { authenticated: boolean; ids: string[] } | null) => {
+        if (cancelled || !data) return;
+        setAuth(data.authenticated ? "authed" : "anon");
+        if (data.ids.length > 0) setIds(new Set(data.ids));
+      })
+      .catch(() => {
+        // Network blip — leave state as unknown so clicks still attempt the
+        // server action, which will prompt for login if needed.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const toggle = (accountId: string) => {
-    if (!enabled) {
-      // Skip the optimistic flip — an anon heart flashing red and rolling back
-      // would be jarring. Prompt for login immediately instead.
+    if (auth === "anon") {
+      // Known anonymous — skip the optimistic flip (a heart flashing red and
+      // rolling back would be jarring) and prompt for login immediately.
       requireLogin();
       return;
     }
@@ -47,15 +62,16 @@ export function WishlistProvider({
     startTransition(async () => {
       const result = await toggleWishlist(accountId);
       if ("error" in result) {
-        // Roll back the optimistic flip.
         setIds((prev) => {
           const next = new Set(prev);
           if (wasLiked) next.add(accountId);
           else next.delete(accountId);
           return next;
         });
-        // Session expired mid-session (cookie dropped, browser restarted, etc).
-        if (result.error === "SIGN_IN_REQUIRED") requireLogin();
+        if (result.error === "SIGN_IN_REQUIRED") {
+          setAuth("anon");
+          requireLogin();
+        }
       }
     });
   };
@@ -63,7 +79,7 @@ export function WishlistProvider({
   return (
     <WishlistContext.Provider
       value={{
-        enabled,
+        enabled: auth === "authed",
         pending,
         isWishlisted: (id) => ids.has(id),
         toggle,
