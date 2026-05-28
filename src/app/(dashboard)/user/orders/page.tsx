@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { OrderCard } from "@/components/sections/OrderCard";
+import { OrdersBrowser } from "@/components/sections/OrdersBrowser";
 import { getMyPurchases } from "@/lib/orders";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -27,11 +27,7 @@ export default async function MyOrdersPage() {
       </div>
 
       {orders.length > 0 ? (
-        <ul className="flex flex-col gap-4">
-          {orders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
-        </ul>
+        <OrdersBrowser orders={orders} />
       ) : (
         <div className="rounded-3xl border border-brand-border-light bg-brand-bg-light p-10 text-center font-display text-[14px] font-medium text-brand-text-secondary-light">
           Browse the{" "}
