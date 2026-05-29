@@ -51,7 +51,7 @@ export function ProductCard({
       <Link
         href={`/games/${account.game.slug}/${account.id}`}
         className={cn(
-          "relative flex w-full flex-col overflow-hidden rounded-3xl bg-black text-white transition",
+          "relative flex w-full flex-1 flex-col overflow-hidden rounded-3xl bg-black text-white transition",
           !isSold && "group-hover:-translate-y-0.5 group-hover:shadow-lg",
         )}
       >
@@ -134,12 +134,14 @@ export function ProductCard({
           </div>
         </div>
 
-        <h3 className="line-clamp-2 font-display text-[14px] font-medium leading-[18px] text-white">
+        {/* Reserve two lines so a one-line title keeps the same height as
+            two-line cards and the price rows stay aligned across the grid. */}
+        <h3 className="line-clamp-2 min-h-[36px] font-display text-[14px] font-medium leading-[18px] text-white">
           {account.title}
         </h3>
 
         {(region || platform) && (
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="mb-2 flex flex-wrap items-center gap-1">
             {region ? <Chip>{region.toUpperCase()}</Chip> : null}
             {platform ? <Chip>{platform}</Chip> : null}
           </div>
