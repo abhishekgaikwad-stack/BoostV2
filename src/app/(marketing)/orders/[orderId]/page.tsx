@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OrderActions } from "@/components/sections/OrderActions";
 import { LocalDate } from "@/components/ui/LocalDate";
-import { gameImage } from "@/lib/images";
+import { assetUrl, gameImage } from "@/lib/images";
 import { getMyOrder } from "@/lib/orders";
 import { PROTECT_PLAN_LABELS } from "@/lib/protect";
 import { getMyReviewForOffer, isWithinEditWindow } from "@/lib/reviews";
@@ -45,12 +45,11 @@ export default async function OrderSuccessPage({
       <div className="flex flex-col items-center gap-3 text-center">
         {/* Plain <img> (not next/image) so the rendered tag has no
             height attribute — the SVG scales to its natural aspect ratio
-            from the 280px width. Direct S3 URL is used here intentionally
-            (CloudFront-locked image policy aside) — flip to the CDN host
-            once the file lands there. */}
+            from the 280px width. Served from CloudFront because the S3
+            bucket is OAC-locked (direct origin returns 403). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://boost-v2-images.s3.ap-south-1.amazonaws.com/Success+animation.svg"
+          src={assetUrl("Success%20animation.svg")}
           alt=""
           aria-hidden
           width={280}
