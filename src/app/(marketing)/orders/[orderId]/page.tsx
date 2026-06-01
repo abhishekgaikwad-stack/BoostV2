@@ -43,17 +43,17 @@ export default async function OrderSuccessPage({
       </Link>
 
       <div className="flex flex-col items-center gap-3 text-center">
-        {/* Animated webp — `unoptimized` so Next serves the file as-is
-            instead of transcoding the animation away. The filename has
-            a literal space in S3, so it's percent-encoded here. */}
-        <Image
+        {/* Plain <img> (not next/image) so the rendered tag has no
+            height attribute — the animated webp scales to its natural
+            aspect ratio from the 280px width. Optimization isn't useful
+            here either: next/image's optimizer strips webp animation. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={assetUrl("Success%20animation.webp")}
           alt=""
           aria-hidden
           width={280}
-          height={280}
-          unoptimized
-          className="h-[280px] w-[280px] object-contain"
+          className="w-[280px] object-contain"
         />
         <h1 className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-light">
           Payment successful
