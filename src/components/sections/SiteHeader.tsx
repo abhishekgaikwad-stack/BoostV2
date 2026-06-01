@@ -1,21 +1,11 @@
 "use client";
 
-import { Globe, Heart, ShoppingBag, Tag } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import { Globe } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SearchBar } from "@/components/cards/SearchBar";
 import { RegionPopup } from "@/components/sections/RegionPopup";
 import { SearchOverlay } from "@/components/sections/SearchOverlay";
 import { UserNav } from "@/components/sections/UserNav";
-import { assetUrl } from "@/lib/images";
-import { cn } from "@/lib/utils";
-
-const sidebarNav = [
-  { id: "orders", label: "Orders", icon: ShoppingBag, href: "/user/orders" },
-  { id: "sell", label: "Sell", icon: Tag, href: "/sell" },
-  { id: "wishlist", label: "Wishlist", icon: Heart, href: "/wishlist" },
-];
 
 export function SiteHeader() {
   const [isSearchOpen, setSearchOpen] = useState(false);
@@ -47,84 +37,37 @@ export function SiteHeader() {
   }, [isSearchOpen]);
 
   return (
-    <>
-      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-[120px] flex-col items-center gap-6 bg-black pb-6 pt-[calc(var(--spacing)*12)] lg:flex">
-        <Link
-          href="/"
-          className="flex flex-col items-center gap-[calc(var(--spacing)*2)]"
-          aria-label="Boost home"
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-20 flex items-center gap-6 bg-white px-[112px] pb-6 pt-[calc(var(--spacing)*12)]"
+    >
+      <SearchBar className="flex-1" onOpen={() => setSearchOpen(true)} />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label="Region"
+          onClick={() => setRegionOpen(true)}
+          className="grid h-16 w-16 place-items-center rounded-2xl bg-black text-white transition hover:bg-brand-bg-surface"
         >
-          <span className="relative block h-[72px] w-[72px]">
-            <Image
-              src={assetUrl("boost-logo-icon.svg")}
-              alt="Boost"
-              fill
-              sizes="72px"
-              priority
-              className="object-contain"
-            />
-          </span>
-          <span className="font-display text-[16px] font-medium leading-5 text-white">
-            boost
-          </span>
-        </Link>
-        <nav className="mt-10 flex flex-col items-center gap-7">
-          {sidebarNav.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className="flex flex-col items-center gap-2"
-            >
-              <span
-                className={cn(
-                  "grid h-14 w-14 place-items-center rounded-xl bg-brand-bg-elevated text-brand-text-primary-dark transition hover:bg-brand-border",
-                )}
-              >
-                <item.icon className="h-6 w-6" strokeWidth={1.5} />
-              </span>
-              <span className="font-display text-[12px] font-normal leading-5 text-brand-text-secondary-dark">
-                {item.label}
-              </span>
-            </Link>
-          ))}
-        </nav>
-      </aside>
+          <Globe className="h-6 w-6" strokeWidth={1.5} />
+        </button>
+        <UserNav />
+      </div>
 
-      <header
-        ref={headerRef}
-        className="sticky top-0 z-20 flex items-center gap-6 bg-white px-[112px] pb-6 pt-[calc(var(--spacing)*12)]"
-      >
-        <SearchBar
-          className="flex-1"
-          onOpen={() => setSearchOpen(true)}
-        />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Region"
-            onClick={() => setRegionOpen(true)}
-            className="grid h-16 w-16 place-items-center rounded-2xl bg-black text-white transition hover:bg-brand-bg-surface"
-          >
-            <Globe className="h-6 w-6" strokeWidth={1.5} />
-          </button>
-          <UserNav />
-        </div>
+      <RegionPopup open={isRegionOpen} onClose={() => setRegionOpen(false)} />
 
-        <RegionPopup open={isRegionOpen} onClose={() => setRegionOpen(false)} />
-
-        {isSearchOpen ? (
-          <>
-            <div
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[4px]"
-              aria-hidden
-              onClick={() => setSearchOpen(false)}
-            />
-            <div className="absolute left-[112px] right-[112px] top-[calc(var(--spacing)*12)] z-50">
-              <SearchOverlay />
-            </div>
-          </>
-        ) : null}
-      </header>
-    </>
+      {isSearchOpen ? (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[4px]"
+            aria-hidden
+            onClick={() => setSearchOpen(false)}
+          />
+          <div className="absolute left-[112px] right-[112px] top-[calc(var(--spacing)*12)] z-50">
+            <SearchOverlay />
+          </div>
+        </>
+      ) : null}
+    </header>
   );
 }
