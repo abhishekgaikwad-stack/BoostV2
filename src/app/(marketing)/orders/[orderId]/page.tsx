@@ -43,20 +43,18 @@ export default async function OrderSuccessPage({
       </Link>
 
       <div className="flex flex-col items-center gap-3 text-center">
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-brand-success text-black">
-          {/* Animated webp — `unoptimized` so Next serves the file as-is
-              instead of transcoding the animation away. The filename has
-              a literal space in S3, so it's percent-encoded here. */}
-          <Image
-            src={assetUrl("Success%20animation.webp")}
-            alt=""
-            aria-hidden
-            width={56}
-            height={56}
-            unoptimized
-            className="h-14 w-14 object-contain"
-          />
-        </span>
+        {/* Animated webp — `unoptimized` so Next serves the file as-is
+            instead of transcoding the animation away. The filename has
+            a literal space in S3, so it's percent-encoded here. */}
+        <Image
+          src={assetUrl("Success%20animation.webp")}
+          alt=""
+          aria-hidden
+          width={56}
+          height={56}
+          unoptimized
+          className="h-14 w-14 object-contain"
+        />
         <h1 className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-light">
           Payment successful
         </h1>
