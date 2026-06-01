@@ -1,10 +1,10 @@
-import { ArrowLeft, Check, Download, Star } from "lucide-react";
+import { ArrowLeft, Download, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OrderActions } from "@/components/sections/OrderActions";
 import { LocalDate } from "@/components/ui/LocalDate";
-import { gameImage } from "@/lib/images";
+import { assetUrl, gameImage } from "@/lib/images";
 import { getMyOrder } from "@/lib/orders";
 import { PROTECT_PLAN_LABELS } from "@/lib/protect";
 import { getMyReviewForOffer, isWithinEditWindow } from "@/lib/reviews";
@@ -44,7 +44,18 @@ export default async function OrderSuccessPage({
 
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="grid h-14 w-14 place-items-center rounded-full bg-brand-success text-black">
-          <Check className="h-7 w-7" strokeWidth={3} />
+          {/* Animated webp — `unoptimized` so Next serves the file as-is
+              instead of transcoding the animation away. The filename has
+              a literal space in S3, so it's percent-encoded here. */}
+          <Image
+            src={assetUrl("Success%20animation.webp")}
+            alt=""
+            aria-hidden
+            width={56}
+            height={56}
+            unoptimized
+            className="h-14 w-14 object-contain"
+          />
         </span>
         <h1 className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-light">
           Payment successful
