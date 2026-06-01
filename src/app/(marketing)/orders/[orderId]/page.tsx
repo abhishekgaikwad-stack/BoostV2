@@ -50,10 +50,10 @@ export default async function OrderSuccessPage({
           src={assetUrl("Success%20animation.webp")}
           alt=""
           aria-hidden
-          width={150}
-          height={150}
+          width={280}
+          height={280}
           unoptimized
-          className="h-[150px] w-[150px] object-contain"
+          className="h-[280px] w-[280px] object-contain"
         />
         <h1 className="font-display text-[28px] font-medium leading-8 text-brand-text-primary-light">
           Payment successful
